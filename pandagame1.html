@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Panda Reactor</title>
+<style>
+    body {
+        background: #111;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+
+    #game {
+        margin: 40px auto;
+        width: 400px;
+        height: 400px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+        gap: 6px;
+    }
+
+    .tile {
+        background: #222;
+        border-radius: 6px;
+        transition: background 0.1s;
+        cursor: pointer;
+    }
+
+    .active {
+        background: red;
+    }
+
+    #info {
+        margin-top: 20px;
+        font-size: 20px;
+    }
+
+    #startBtn {
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 18px;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+
+<h1>PANDA REACTOR</h1>
+<div id="info">Click the red tiles before they explode.</div>
+<button id="startBtn">START</button>
+
+<div id="game"></div>
+
+<script>
+// ----------------------------
+// LOCAL STORAGE COIN SYSTEM
+// ----------------------------
+const STORAGE_KEY = "panda2am_users_v1";
+
+function addCoins(amount) {
+    let users = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    let currentUser = localStorage.getItem("panda2am_currentUser");
+
+    if (!currentUser || !users[currentUser]) return;
+
+    users[currentUser].pandaCoins += amount;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+}
+
+// ----------------------------
+// GAME LOGIC
+// ----------------------------
+const game = document.getElementById("game");
+const startBtn = document.getElementById("startBtn");
+const info = document.getElementById("info");
+
+let tiles = [];
+let activeTile = null;
+let speed = 1600; // MUCH SLOWER START
+let lives = 3;
+let score = 0;
+let running = false;
+
+function setupGrid() {
+    game.innerHTML = "";
+    tiles = [];
+
+    for (let i = 0; i < 16; i++) {
+        let tile = document.createElement("div");
+        tile.classList.add("tile");
+        tile.dataset.index = i;
+
+        tile.onclick = () => {
+            if (!running) return;
+            if (activeTile === i) {
+                score++;
+                deactivateTile();
+                nextRound();
+            } else {
+                lives--;
+                checkGameOver();
+            }
+        };
+
+        tiles.push(tile);
+        game.appendChild(tile);
+    }
+}
+
+function activateTile() {
+    activeTile = Math.floor(Math.random() * 16);
+    tiles[activeTile].classList.add("active");
+
+    setTimeout(() => {
+        if (running && activeTile !== null) {
+            lives--;
+            deactivateTile();
+            checkGameOver();
+            if (running) nextRound();
+        }
+    }, speed);
+}
+
+function deactivateTile() {
+    if (activeTile !== null) {
+        tiles[activeTile].classList.remove("active");
+        activeTile = null;
+    }
+}
+
+function nextRound() {
+    deactivateTile();
+    speed = Math.max(500, speed - 40); // slower ramp-down
+    activateTile();
+    updateInfo();
+}
+
+function updateInfo() {
+    info.textContent = `Score: ${score} | Lives: ${lives}`;
+}
+
+function checkGameOver() {
+    if (lives <= 0) {
+        running = false;
+        deactivateTile();
+        info.textContent = `GAME OVER — Score: ${score}`;
+
+        // Only reward if score >= 20
+        if (score >= 20) {
+            let reward = Math.floor(score / 5);
+            addCoins(reward);
+            info.textContent += ` | +${reward} PandaCoins`;
+        } else {
+            info.textContent += " | No coins (need 20)";
+        }
+
+        startBtn.style.display = "inline-block";
+    }
+}
+
+startBtn.onclick = () => {
+    running = true;
+    lives = 3;
+    score = 0;
+    speed = 1600; // reset slower speed
+    startBtn.style.display = "none";
+    updateInfo();
+    nextRound();
+};
+
+setupGrid();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Panda Kingdom Clash</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #f5f5f5;
+      display: flex;
+      height: 100vh;
+    }
+
+
+
+    #sidebar {
+      width: 260px;
+      background: #181818;
+      padding: 12px;
+      box-sizing: border-box;
+      border-right: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #topbar {
+      position: fixed;
+      top: 0;
+      left: 260px;
+      right: 0;
+      height: 50px;
+      background: #202020;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      box-sizing: border-box;
+      border-bottom: 1px solid #333;
+      font-size: 14px;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    .stat { display: flex; gap: 4px; align-items: center; }
+    .label { color: #aaa; }
+    .value { font-weight: bold; }
+
+    #game {
+      flex: 1;
+      margin-left: 260px;
+      margin-top: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #101010;
+    }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(10, 40px);
+      grid-template-rows: repeat(10, 40px);
+      gap: 2px;
+      background: #222;
+      padding: 6px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.6);
+    }
+
+    .tile {
+      width: 40px;
+      height: 40px;
+      background: #2b2b2b;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .tile.empty:hover { background: #3a3a3a; }
+    .tile.building { background: #3f5a3f; }
+    .tile.townhall { background: #6b4b2b; font-weight: bold; }
+    .tile.tower { background: #4b4b7a; }
+    .tile.wall { background: #555; }
+    .tile.soldiertent { background: #7a4b4b; }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+    }
+
+    .build-button {
+      width: 100%;
+      padding: 6px;
+      margin-bottom: 4px;
+      border: none;
+      border-radius: 6px;
+      background: #2e7d32;
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .build-button span.cost {
+      font-size: 11px;
+      color: #ddd;
+      display: block;
+    }
+
+    #info { font-size: 12px; min-height: 40px; color: #ccc; }
+    #rewardNotice { color: #f1c40f; font-size: 12px; margin-top: 4px; }
+
+    #log {
+      flex: 1;
+      font-size: 11px;
+      background: #141414;
+      border-radius: 6px;
+      padding: 6px;
+      overflow-y: auto;
+      border: 1px solid #333;
+    }
+
+    #log p { margin: 2px 0; }
+  </style>
+</head>
+<body>
+
+
+
+  <div id="sidebar">
+    <div>
+      <div class="section-title">Build Menu</div>
+
+      <button class="build-button" data-building="house">
+        House
+        <span class="cost">Cost: 20 Wood</span>
+      </button>
+
+      <button class="build-button" data-building="lumbermill">
+        Lumber Mill
+        <span class="cost">Cost: 30 Wood</span>
+      </button>
+
+      <button class="build-button" data-building="quarry">
+        Quarry
+        <span class="cost">Cost: 40 Stone</span>
+      </button>
+
+      <button class="build-button" data-building="farm">
+        Farm
+        <span class="cost">Cost: 20 Wood, 10 Gold</span>
+      </button>
+
+      <button class="build-button" data-building="tower">
+        Tower
+        <span class="cost">Cost: 40 Stone, 20 Wood</span>
+      </button>
+
+      <button class="build-button" data-building="wall">
+        Wall
+        <span class="cost">Cost: 10 Stone</span>
+      </button>
+
+      <button class="build-button" data-building="soldiertent">
+        Soldier Tent
+        <span class="cost">Cost: 40 Wood, 20 Food</span>
+      </button>
+
+      <button class="build-button" data-building="castle">
+        Castle (Level Up)
+        <span class="cost">Cost: 200 Stone, 150 Gold</span>
+      </button>
+    </div>
+
+    <div>
+      <div class="section-title">Info</div>
+      <div id="info">Select a building, then click an empty tile.</div>
+      <div id="rewardNotice"></div>
+    </div>
+
+    <div>
+      <div class="section-title">Events</div>
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <div id="topbar">
+    <div class="stat"><span class="label">Wood:</span> <span class="value" id="woodDisplay">0</span></div>
+    <div class="stat"><span class="label">Stone:</span> <span class="value" id="stoneDisplay">0</span></div>
+    <div class="stat"><span class="label">Food:</span> <span class="value" id="foodDisplay">0</span></div>
+    <div class="stat"><span class="label">Gold:</span> <span class="value" id="goldDisplay">0</span></div>
+    <div class="stat"><span class="label">Soldiers:</span> <span class="value" id="soldierDisplay">0</span></div>
+    <div class="stat"><span class="label">Kingdom Lv:</span> <span class="value" id="levelDisplay">1</span></div>
+    <div class="stat"><span class="label">PandaCoins:</span> <span class="value" id="pandaCoinsDisplay">0</span></div>
+  </div>
+
+  <div id="game">
+    <div id="grid"></div>
+  </div>
+
+  <script>
+    /* -----------------------------
+       PandaCoin integration (iframe)
+    ----------------------------- */
+    function getUserContext() {
+      try {
+        const p = window.parent;
+        if (!p || !p.users || !p.currentUser) return null;
+        return {
+          users: p.users,
+          currentUser: p.currentUser,
+          saveUsers: p.saveUsers,
+          updateCoinCounter: p.updateCoinCounter
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    function awardPandaCoins(amount) {
+      const ctx = getUserContext();
+      if (!ctx) return;
+
+      ctx.users[ctx.currentUser].coins += amount;
+      ctx.saveUsers();
+      ctx.updateCoinCounter();
+
+      pandaCoinsDisplay.textContent = ctx.users[ctx.currentUser].coins;
+    }
+
+    function getCurrentPandaCoins() {
+      const ctx = getUserContext();
+      if (!ctx) return 0;
+      return ctx.users[ctx.currentUser].coins;
+    }
+
+    /* -----------------------------
+       Game State
+    ----------------------------- */
+    const GRID_SIZE = 10;
+    const gridEl = document.getElementById('grid');
+    const infoEl = document.getElementById('info');
+    const logEl = document.getElementById('log');
+    const rewardNoticeEl = document.getElementById('rewardNotice');
+
+    const resources = {
+      wood: 50,
+      stone: 30,
+      food: 40,
+      gold: 20,
+      soldiers: 0
+    };
+
+    let kingdomLevel = 1;
+    let pandaRewardGiven = false;
+
+    const tiles = [];
+    let selectedBuilding = null;
+
+    const buildings = {
+      townhall: { name: 'Town Hall', symbol: 'TH', type: 'townhall', cost: {}, production: {} },
+
+      house: {
+        name: 'House',
+        symbol: 'H',
+        type: 'building',
+        cost: { wood: 20 },
+        production: { gold: 1 } // Houses now DO something
+      },
+
+      lumbermill: {
+        name: 'Lumber Mill',
+        symbol: 'L',
+        type: 'building',
+        cost: { wood: 30 },
+        production: { wood: 2 }
+      },
+
+      quarry: {
+        name: 'Quarry',
+        symbol: 'Q',
+        type: 'building',
+        cost: { stone: 40 },
+        production: { stone: 2 }
+      },
+
+      farm: {
+        name: 'Farm',
+        symbol: 'F',
+        type: 'building',
+        cost: { wood: 20, gold: 10 },
+        production: { food: 3 }
+      },
+
+      tower: {
+        name: 'Tower',
+        symbol: 'T',
+        type: 'tower',
+        cost: { stone: 40, wood: 20 },
+        production: {}
+      },
+
+      wall: {
+        name: 'Wall',
+        symbol: 'W',
+        type: 'wall',
+        cost: { stone: 10 },
+        production: {}
+      },
+
+      soldiertent: {
+        name: 'Soldier Tent',
+        symbol: 'ST',
+        type: 'soldiertent',
+        cost: { wood: 40, food: 20 },
+        production: { soldiers: 1 } // produces soldiers
+      },
+
+      castle: {
+        name: 'Castle',
+        symbol: 'C',
+        type: 'building',
+        cost: { stone: 200, gold: 150 },
+        production: {}
+      }
+    };
+
+    /* -----------------------------
+       UI Helpers
+    ----------------------------- */
+    function updateResourceDisplays() {
+      woodDisplay.textContent = resources.wood;
+      stoneDisplay.textContent = resources.stone;
+      foodDisplay.textContent = resources.food;
+      goldDisplay.textContent = resources.gold;
+      soldierDisplay.textContent = resources.soldiers;
+      levelDisplay.textContent = kingdomLevel;
+
+      pandaCoinsDisplay.textContent = getCurrentPandaCoins();
+    }
+
+    function logEvent(text) {
+      const p = document.createElement('p');
+      p.textContent = text;
+      logEl.appendChild(p);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function canAfford(cost) {
+      for (const key in cost) {
+        if (resources[key] < cost[key]) return false;
+      }
+      return true;
+    }
+
+    function payCost(cost) {
+      for (const key in cost) {
+        resources[key] -= cost[key];
+      }
+      updateResourceDisplays();
+    }
+
+    /* -----------------------------
+       Grid Setup
+    ----------------------------- */
+    function createGrid() {
+      gridEl.innerHTML = '';
+      tiles.length = 0;
+
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          const tile = {
+            x, y,
+            building: null,
+            el: document.createElement('div')
+          };
+
+          tile.el.className = 'tile empty';
+          tile.el.addEventListener('click', () => onTileClick(tile));
+          gridEl.appendChild(tile.el);
+          tiles.push(tile);
+        }
+      }
+
+      // Place Town Hall in center
+      const center = Math.floor(GRID_SIZE / 2) * GRID_SIZE + Math.floor(GRID_SIZE / 2);
+      placeBuildingOnTile(tiles[center], 'townhall', false);
+    }
+
+    function placeBuildingOnTile(tile, key, pay = true) {
+      const b = buildings[key];
+      if (!b) return;
+
+      if (pay && !canAfford(b.cost)) {
+        infoEl.textContent = "Not enough resources.";
+        return;
+      }
+
+      if (pay) payCost(b.cost);
+
+      tile.building = key;
+      tile.el.textContent = b.symbol;
+      tile.el.classList.remove('empty');
+      tile.el.classList.add('building');
+
+      if (b.type === 'townhall') tile.el.classList.add('townhall');
+      if (b.type === 'tower') tile.el.classList.add('tower');
+      if (b.type === 'wall') tile.el.classList.add('wall');
+      if (b.type === 'soldiertent') tile.el.classList.add('soldiertent');
+
+      logEvent(`Built ${b.name} at (${tile.x}, ${tile.y})`);
+      updateResourceDisplays();
+
+      if (key === 'castle') {
+        kingdomLevel++;
+        logEvent("Kingdom leveled up!");
+        updateResourceDisplays();
+        checkPandaReward();
+      }
+    }
+
+    function onTileClick(tile) {
+      if (!selectedBuilding) {
+        infoEl.textContent = tile.building
+          ? `${buildings[tile.building].name} at (${tile.x}, ${tile.y})`
+          : `Empty tile at (${tile.x}, ${tile.y})`;
+        return;
+      }
+
+      if (tile.building) {
+        infoEl.textContent = "Tile occupied.";
+        return;
+      }
+
+      placeBuildingOnTile(tile, selectedBuilding, true);
+    }
+
+    /* -----------------------------
+       Build Menu
+    ----------------------------- */
+    document.querySelectorAll('.build-button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedBuilding = btn.dataset.building;
+        infoEl.textContent = `Selected: ${buildings[selectedBuilding].name}`;
+      });
+    });
+
+    /* -----------------------------
+       Production + Enemies
+    ----------------------------- */
+    function tickProduction() {
+      tiles.forEach(t => {
+        if (!t.building) return;
+        const prod = buildings[t.building].production;
+
+        for (const key in prod) {
+          if (key === 'soldiers') {
+            resources.soldiers += prod[key];
+          } else {
+            resources[key] += prod[key];
+          }
+        }
+      });
+
+      updateResourceDisplays();
+    }
+
+    let enemyTimer = 0;
+
+    function tickEnemies() {
+      enemyTimer++;
+      if (enemyTimer >= 20) {
+        enemyTimer = 0;
+        const strength = 5 + kingdomLevel * 3;
+        resolveAttack(strength);
+      }
+    }
+
+    function resolveAttack(strength) {
+      const towers = tiles.filter(t => t.building === 'tower').length;
+      const walls = tiles.filter(t => t.building === 'wall').length;
+
+      const defense =
+        towers * 6 +
+        walls * 2 +
+        resources.soldiers * 3 +   // soldiers defend
+        tiles.filter(t => t.building === 'house').length; // houses add +1 defense
+
+      if (defense >= strength) {
+        logEvent(`Raid repelled!`);
+      } else {
+        const dmg = strength - defense;
+        resources.food = Math.max(0, resources.food - dmg);
+        resources.gold = Math.max(0, resources.gold - Math.floor(dmg / 2));
+        logEvent(`Raid hit! Damage taken.`);
+        updateResourceDisplays();
+      }
+    }
+
+    /* -----------------------------
+       PandaCoin Reward
+    ----------------------------- */
+    function checkPandaReward() {
+      if (!pandaRewardGiven && kingdomLevel >= 3) {
+        pandaRewardGiven = true;
+        rewardNoticeEl.textContent = "Kingdom Level 3 reached! +20 PandaCoins!";
+        awardPandaCoins(20);
+      }
+    }
+
+    /* -----------------------------
+       Game Loop
+    ----------------------------- */
+    function gameLoop() {
+      tickProduction();
+      tickEnemies();
+    }
+
+    /* -----------------------------
+       Init
+    ----------------------------- */
+    function init() {
+      createGrid();
+      updateResourceDisplays();
+      logEvent("Welcome to Panda Kingdom Clash!");
+      rewardNoticeEl.textContent = "Bugged and doesn't' reward pandacoins";
+
+      setInterval(gameLoop, 3000);
+    }
+
+    init();
+  </script>
+</body>
+</html>

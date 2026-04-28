@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMERALD SPIRE: THE 100-FLOOR GAUNTLET</title>
+    <style>
+        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; margin: 0; overflow: hidden; }
+        #ui-layer { width: 900px; display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px; padding: 15px; background: #111; border: 2px solid #444; margin-top: 5px; box-sizing: border-box; }
+        #game-wrapper { position: relative; width: 900px; height: 500px; border: 4px solid #00ff41; margin-top: 10px; background: #000; cursor: crosshair; }
+        canvas { display: block; width: 100%; height: 100%; background: black; }
+        #combat-log { width: 900px; height: 100px; background: #000; border: 2px solid #444; margin-top: 5px; overflow-y: auto; padding: 10px; font-size: 12px; box-sizing: border-box; }
+        #battle-overlay, #merchant-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 20; flex-direction: column; align-items: center; justify-content: center; }
+        .menu-box { border: 2px solid gold; padding: 20px; background: #111; text-align: center; width: 500px; }
+        .btn { background: #222; color: #00ff41; border: 1px solid #00ff41; padding: 10px; margin: 4px; width: 150px; cursor: pointer; font-family: 'Courier New'; font-weight: bold; }
+        .btn:hover:not(:disabled) { background: #00ff41; color: #000; }
+        .selected-btn { background: #00ff41 !important; color: #000 !important; }
+        #confirm-btn { display: none; background: gold; color: black; border: 2px solid white; width: 220px; margin-top: 10px; }
+        .hp-bar { color: #ff4444; font-weight: bold; }
+        .mp-bar { color: #00d4ff; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="ui-layer">
+    <div>
+        <div id="char-name" style="color:gold; font-size: 18px;">CHOOSE HERO</div>
+        <div class="hp-bar" id="stat-hp">HP: --</div>
+        <div class="mp-bar" id="stat-mp">MP: --</div>
+    </div>
+    <div style="font-size: 12px;">
+        <div>STR:<span id="s-str">--</span> INT:<span id="s-int">--</span> CON:<span id="s-con">--</span></div>
+        <div id="stat-xp" style="color:#4444ff">XP: 0/100</div>
+    </div>
+    <div id="meta-controls">
+        <div style="color:#00ff41; font-weight:bold;">FLOOR: <span id="floor-num">1</span>/100</div>
+        <div id="selection-area" style="display:flex; flex-direction: column; align-items: center;">
+            <div style="display:flex; gap:5px;">
+                <button class="btn class-opt" id="opt-Mage" onclick="preSelect('Mage', '#00d4ff')">MAGE</button>
+                <button class="btn class-opt" id="opt-Pala" onclick="preSelect('Pala', '#fff')">PALA</button>
+                <button class="btn class-opt" id="opt-Arch" onclick="preSelect('Arch', '#ffaa00')">ARCH</button>
+            </div>
+            <button id="confirm-btn" class="btn" onclick="startGame()">START JOURNEY</button>
+        </div>
+    </div>
+</div>
+
+<div id="game-wrapper">
+    <canvas id="gameCanvas" width="900" height="500"></canvas>
+   
+    <div id="battle-overlay">
+        <div class="menu-box">
+            <h2 id="monster-name" style="color:red;">SHADOW STALKER</h2>
+            <div id="battle-stats" style="margin-bottom: 15px;"></div>
+            <div id="battle-menu">
+                <button class="btn" onclick="playerAction('THRUST')">THRUST</button>
+                <button class="btn" onclick="playerAction('SPELL')">SPELL (20MP)</button>
+                <button class="btn" onclick="playerAction('HEAL')">HEAL (15MP)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="merchant-overlay">
+        <div class="menu-box">
+            <h2 style="color:mediumpurple">ETHER MERCHANT</h2>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <button class="btn" onclick="buyItem('mana')">MANA (25XP)</button>
+                <button class="btn" onclick="buyItem('rest')">REST (15XP)</button>
+                <button class="btn" onclick="buyStat('str')">+STR (40XP)</button>
+                <button class="btn" onclick="buyStat('int')">+INT (40XP)</button>
+                <button class="btn" onclick="buyStat('con')">+CON (40XP)</button>
+                <button class="btn" onclick="buyStat('speed')">+SPD (50XP)</button>
+                <button class="btn" style="color:orange; grid-column: span 2;" onclick="closeMerchant()">BACK TO SPIRE</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="combat-log"></div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const log = document.getElementById('combat-log');
+
+    const battleOverlay = document.getElementById('battle-overlay');
+    const merchantOverlay = document.getElementById('merchant-overlay');
+    const monsterNameEl = document.getElementById('monster-name');
+    const battleStatsEl = document.getElementById('battle-stats');
+
+    const hpEl = document.getElementById('stat-hp');
+    const mpEl = document.getElementById('stat-mp');
+    const xpEl = document.getElementById('stat-xp');
+    const floorEl = document.getElementById('floor-num');
+    const nameEl = document.getElementById('char-name');
+    const sStr = document.getElementById('s-str');
+    const sInt = document.getElementById('s-int');
+    const sCon = document.getElementById('s-con');
+
+    let hero = {
+        active: false,
+        type: '',
+        color: 'white',
+        x: 450,
+        y: 400,
+        speed: 5,
+        hp: 100,
+        maxHP: 100,
+        mp: 50,
+        maxMP: 50,
+        xp: 0,
+        nextXP: 100,
+        level: 1,
+        floor: 1,
+        str: 10,
+        int: 10,
+        con: 10
+    };
+
+    let mouse = { x: 0, y: 0, down: false };
+    let gameState = "SELECT";
+    let keys = {};
+    let enemies = [];
+    let merchant = null;
+    let currentEnemy = null;
+    let pendingClass = null;
+
+    window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        keys[k] = true;
+        if (["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)) e.preventDefault();
+    });
+    window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+    canvas.addEventListener('mousedown', (e) => { if (gameState === "EXPLORE") mouse.down = true; updateMouse(e); });
+    window.addEventListener('mouseup', () => { mouse.down = false; });
+    canvas.addEventListener('mousemove', (e) => { updateMouse(e); });
+
+    function updateMouse(e) {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+    }
+
+    function addLog(msg, color) {
+        const div = document.createElement('div');
+        div.style.color = color || 'white';
+        div.innerText = msg;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function preSelect(cls, color) {
+        pendingClass = cls;
+        document.querySelectorAll('.class-opt').forEach(b => b.classList.remove('selected-btn'));
+        document.getElementById('opt-' + cls).classList.add('selected-btn');
+        document.getElementById('confirm-btn').style.display = 'block';
+        nameEl.textContent = "CHOSEN: " + cls.toUpperCase();
+        nameEl.style.color = color;
+    }
+
+    function applyClassStats() {
+        if (pendingClass === 'Mage') {
+            hero.type = 'Mage';
+            hero.color = '#00d4ff';
+            hero.maxHP = 80; hero.hp = 80;
+            hero.maxMP = 120; hero.mp = 120;
+            hero.str = 8; hero.int = 18; hero.con = 10;
+        } else if (pendingClass === 'Pala') {
+            hero.type = 'Pala';
+            hero.color = '#ffffff';
+            hero.maxHP = 140; hero.hp = 140;
+            hero.maxMP = 70; hero.mp = 70;
+            hero.str = 16; hero.int = 10; hero.con = 16;
+        } else if (pendingClass === 'Arch') {
+            hero.type = 'Arch';
+            hero.color = '#ffaa00';
+            hero.maxHP = 100; hero.hp = 100;
+            hero.maxMP = 80; hero.mp = 80;
+            hero.str = 14; hero.int = 12; hero.con = 12;
+        }
+        hero.active = true;
+        updateStatsUI();
+    }
+
+    function updateStatsUI() {
+        hpEl.textContent = "HP: " + hero.hp + "/" + hero.maxHP;
+        mpEl.textContent = "MP: " + hero.mp + "/" + hero.maxMP;
+        xpEl.textContent = "XP: " + hero.xp + "/" + hero.nextXP;
+        floorEl.textContent = hero.floor;
+        sStr.textContent = " " + hero.str;
+        sInt.textContent = " " + hero.int;
+        sCon.textContent = " " + hero.con;
+    }
+
+    function startGame() {
+        if (!pendingClass) return;
+        applyClassStats();
+        gameState = "EXPLORE";
+        document.getElementById('selection-area').style.display = 'none';
+        addLog("You step into the Emerald Spire...", "#00ff41");
+        spawnFloor();
+    }
+
+    function spawnFloor() {
+        enemies = [];
+        merchant = null;
+        currentEnemy = null;
+
+        // One enemy per floor, plus a chance for merchant every 5 floors
+        const enemy = createEnemy(hero.floor);
+        enemies.push(enemy);
+
+        if (hero.floor % 5 === 0) {
+            merchant = {
+                x: 450,
+                y: 120,
+                r: 18
+            };
+        }
+    }
+
+    function createEnemy(floor) {
+        const baseHP = 40 + floor * 8;
+        const baseDMG = 6 + Math.floor(floor * 0.8);
+        return {
+            name: "Floor " + floor + " Warden",
+            x: 450,
+            y: 120,
+            r: 20,
+            hp: baseHP,
+            maxHP: baseHP,
+            dmg: baseDMG
+        };
+    }
+
+    function openBattle(enemy) {
+        gameState = "BATTLE";
+        currentEnemy = enemy;
+        battleOverlay.style.display = "flex";
+        monsterNameEl.textContent = enemy.name.toUpperCase();
+        updateBattleStats();
+        addLog("A " + enemy.name + " challenges you!", "red");
+    }
+
+    function closeBattle(victory) {
+        battleOverlay.style.display = "none";
+        currentEnemy = null;
+        if (victory) {
+            const gain = 20 + hero.floor * 5;
+            hero.xp += gain;
+            addLog("You defeated the foe and gained " + gain + " XP.", "#00ff41");
+            checkLevelUp();
+            hero.floor++;
+            if (hero.floor > 100) {
+                addLog("You have conquered all 100 floors of the Emerald Spire!", "gold");
+                gameState = "VICTORY";
+                return;
+            }
+            spawnFloor();
+        } else {
+            gameState = "DEFEAT";
+            addLog("You fall within the Spire. Journey ends here.", "red");
+        }
+        updateStatsUI();
+        if (gameState !== "DEFEAT" && gameState !== "VICTORY") {
+            gameState = "EXPLORE";
+        }
+    }
+
+    function updateBattleStats() {
+        if (!currentEnemy) return;
+        battleStatsEl.innerHTML =
+            "<div style='color:#ff4444'>ENEMY HP: " + currentEnemy.hp + "/" + currentEnemy.maxHP + "</div>" +
+            "<div style='color:#00ff41'>YOUR HP: " + hero.hp + "/" + hero.maxHP + "</div>" +
+            "<div style='color:#00d4ff'>YOUR MP: " + hero.mp + "/" + hero.maxMP + "</div>";
+    }
+
+    function playerAction(type) {
+        if (!currentEnemy) return;
+
+        if (type === 'THRUST') {
+            const dmg = Math.floor(hero.str * 1.4 + Math.random() * 6);
+            currentEnemy.hp -= dmg;
+            addLog("You thrust for " + dmg + " damage.", "#00ff41");
+        } else if (type === 'SPELL') {
+            if (hero.mp < 20) {
+                addLog("Not enough MP!", "gray");
+                return;
+            }
+            hero.mp -= 20;
+            const dmg = Math.floor(hero.int * 2 + 10 + Math.random() * 10);
+            currentEnemy.hp -= dmg;
+            addLog("You unleash a spell for " + dmg + " damage.", "#00d4ff");
+        } else if (type === 'HEAL') {
+            if (hero.mp < 15) {
+                addLog("Not enough MP!", "gray");
+                return;
+            }
+            hero.mp -= 15;
+            const heal = Math.floor(hero.con * 1.5 + 15);
+            hero.hp = Math.min(hero.maxHP, hero.hp + heal);
+            addLog("You restore " + heal + " HP.", "#00ff41");
+        }
+
+        if (currentEnemy.hp <= 0) {
+            currentEnemy.hp = 0;
+            updateBattleStats();
+            closeBattle(true);
+            return;
+        }
+
+        // Enemy turn
+        const edmg = Math.floor(currentEnemy.dmg * (0.8 + Math.random() * 0.4));
+        hero.hp -= edmg;
+        addLog(currentEnemy.name + " hits you for " + edmg + " damage.", "red");
+
+        if (hero.hp <= 0) {
+            hero.hp = 0;
+            updateBattleStats();
+            closeBattle(false);
+            return;
+        }
+
+        updateBattleStats();
+        updateStatsUI();
+    }
+
+    function checkLevelUp() {
+        while (hero.xp >= hero.nextXP) {
+            hero.xp -= hero.nextXP;
+            hero.level++;
+            hero.nextXP = Math.floor(hero.nextXP * 1.4);
+            hero.maxHP += 10;
+            hero.maxMP += 5;
+            hero.hp = hero.maxHP;
+            hero.mp = hero.maxMP;
+            hero.str += 2;
+            hero.int += 2;
+            hero.con += 2;
+            addLog("You reached level " + hero.level + "! Stats increased.", "gold");
+        }
+    }
+
+    function openMerchant() {
+        if (!merchant) return;
+        gameState = "MERCHANT";
+        merchantOverlay.style.display = "flex";
+        addLog("You approach the Ether Merchant.", "mediumpurple");
+    }
+
+    function closeMerchant() {
+        merchantOverlay.style.display = "none";
+        if (gameState !== "DEFEAT" && gameState !== "VICTORY") {
+            gameState = "EXPLORE";
+        }
+    }
+
+    function buyItem(type) {
+        if (type === 'mana') {
+            if (hero.xp < 25) { addLog("Not enough XP.", "gray"); return; }
+            hero.xp -= 25;
+            hero.mp = Math.min(hero.maxMP, hero.mp + 40);
+            addLog("You buy a mana infusion (+40 MP).", "#00d4ff");
+        } else if (type === 'rest') {
+            if (hero.xp < 15) { addLog("Not enough XP.", "gray"); return; }
+            hero.xp -= 15;
+            hero.hp = hero.maxHP;
+            addLog("You rest and fully restore HP.", "#00ff41");
+        }
+        updateStatsUI();
+    }
+
+    function buyStat(stat) {
+        let cost = (stat === 'speed') ? 50 : 40;
+        if (hero.xp < cost) { addLog("Not enough XP.", "gray"); return; }
+        hero.xp -= cost;
+        if (stat === 'str') hero.str += 3;
+        if (stat === 'int') hero.int += 3;
+        if (stat === 'con') { hero.con += 3; hero.maxHP += 10; hero.hp = hero.maxHP; }
+        if (stat === 'speed') hero.speed += 0.5;
+        addLog("You permanently increase " + stat.toUpperCase() + ".", "gold");
+        updateStatsUI();
+    }
+
+    function update() {
+        if (gameState === "EXPLORE") {
+            let dx = 0, dy = 0;
+            if (keys['w'] || keys['arrowup']) dy -= 1;
+            if (keys['s'] || keys['arrowdown']) dy += 1;
+            if (keys['a'] || keys['arrowleft']) dx -= 1;
+            if (keys['d'] || keys['arrowright']) dx += 1;
+
+            const len = Math.hypot(dx, dy) || 1;
+            hero.x += (dx / len) * hero.speed;
+            hero.y += (dy / len) * hero.speed;
+
+            hero.x = Math.max(20, Math.min(880, hero.x));
+            hero.y = Math.max(40, Math.min(480, hero.y));
+
+            // Check enemy collision to start battle
+            for (let e of enemies) {
+                const dist = Math.hypot(hero.x - e.x, hero.y - e.y);
+                if (dist < e.r + 18) {
+                    openBattle(e);
+                    break;
+                }
+            }
+
+            // Check merchant interaction (press E near merchant)
+            if (merchant) {
+                const distM = Math.hypot(hero.x - merchant.x, hero.y - merchant.y);
+                if (distM < 40 && keys['e']) {
+                    openMerchant();
+                }
+            }
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Background grid
+        ctx.strokeStyle = "#003300";
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 30) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 30) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+
+        if (hero.active) {
+            // Hero
+            ctx.fillStyle = hero.color;
+            ctx.beginPath();
+            ctx.arc(hero.x, hero.y, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#00ff41";
+            ctx.stroke();
+        }
+
+        // Enemies
+        enemies.forEach(e => {
+            ctx.fillStyle = "#ff0000";
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#880000";
+            ctx.stroke();
+
+            // HP bar
+            ctx.fillStyle = "#440000";
+            ctx.fillRect(e.x - 20, e.y - 30, 40, 5);
+            ctx.fillStyle = "#ff4444";
+            const w = 40 * (e.hp / e.maxHP);
+            ctx.fillRect(e.x - 20, e.y - 30, w, 5);
+        });
+
+        // Merchant
+        if (merchant) {
+            ctx.fillStyle = "mediumpurple";
+            ctx.beginPath();
+            ctx.arc(merchant.x, merchant.y, merchant.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#ffffff";
+            ctx.stroke();
+
+            ctx.fillStyle = "mediumpurple";
+            ctx.font = "12px 'Courier New'";
+            ctx.fillText("MERCHANT (E)", merchant.x - 40, merchant.y - 25);
+        }
+
+        // Floor label
+        ctx.fillStyle = "#00ff41";
+        ctx.font = "16px 'Courier New'";
+        ctx.fillText("EMERALD SPIRE - FLOOR " + hero.floor, 10, 20);
+
+        if (gameState === "DEFEAT") {
+            ctx.fillStyle = "rgba(0,0,0,0.7)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "red";
+            ctx.font = "32px 'Courier New'";
+            ctx.fillText("YOU FALL IN THE SPIRE", 220, 240);
+        }
+
+        if (gameState === "VICTORY") {
+            ctx.fillStyle = "rgba(0,0,0,0.7)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "gold";
+            ctx.font = "32px 'Courier New'";
+            ctx.fillText("EMERALD SPIRE CONQUERED", 190, 240);
+        }
+    }
+
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    updateStatsUI();
+    loop();
+</script>
+
+<a href="index.html" class="btn" style="margin: 15px 0 25px 0;">Return to Home Page</a>
+
+</body>
+</html>

@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Life in a School</title>
+<meta charset="utf-8">
+<style>
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    overflow:hidden;
+    background:#0b0f18;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+    color:#fefefe;
+  }
+  #game { display:block; }
+
+  #phone {
+    position:absolute;
+    right:20px;
+    bottom:20px;
+    width:240px;
+    height:400px;
+    border-radius:28px;
+    background:linear-gradient(145deg,#111522,#181d2c);
+    box-shadow:0 0 0 3px #262b3f,0 18px 40px rgba(0,0,0,0.9);
+    padding:14px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  #phoneHeader {
+    font-size:12px;
+    letter-spacing:0.12em;
+    opacity:0.7;
+  }
+  #phoneTime {
+    font-size:26px;
+    font-weight:600;
+  }
+  #phoneDay {
+    font-size:13px;
+    opacity:0.8;
+  }
+  #phonePeriod {
+    font-size:13px;
+    opacity:0.9;
+  }
+  #phoneHealthBarOuter {
+    width:100%;
+    height:12px;
+    border-radius:999px;
+    background:#252a3b;
+    overflow:hidden;
+  }
+  #phoneHealthBarInner {
+    height:100%;
+    width:100%;
+    background:linear-gradient(90deg,#4caf50,#ffeb3b,#ff9800,#f44336);
+    transform-origin:left center;
+  }
+  #phoneObjective {
+    font-size:13px;
+    margin-top:4px;
+  }
+  #phoneBadges {
+    font-size:11px;
+    opacity:0.7;
+  }
+  #phoneMiniMap {
+    flex:1;
+    border-radius:16px;
+    background:#050812;
+    overflow:hidden;
+    border:1px solid #262b3f;
+  }
+  #phoneMiniMap canvas {
+    width:100%;
+    height:100%;
+    display:block;
+  }
+  #msg {
+    position:absolute;
+    top:12px;
+    left:50%;
+    transform:translateX(-50%);
+    padding:6px 14px;
+    background:rgba(0,0,0,0.85);
+    border-radius:999px;
+    font-size:14px;
+    display:none;
+  }
+  #badgePopup {
+    position:absolute;
+    right:270px;
+    bottom:430px;
+    padding:8px 14px;
+    background:rgba(0,0,0,0.9);
+    border-radius:12px;
+    font-size:13px;
+    display:none;
+    box-shadow:0 12px 30px rgba(0,0,0,0.8);
+  }
+  #overlay {
+    position:absolute;
+    inset:0;
+    background:rgba(3,4,10,0.96);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:14px;
+    text-align:center;
+    padding:20px;
+  }
+  #overlayTitle {
+    font-size:32px;
+    font-weight:700;
+  }
+  #overlayText {
+    font-size:18px;
+    max-width:520px;
+    white-space:pre-line;
+  }
+  #overlay button {
+    padding:10px 22px;
+    border-radius:999px;
+    border:none;
+    background:#ffcc4d;
+    color:#222;
+    font-size:16px;
+    cursor:pointer;
+  }
+
+  #lockUI {
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.7);
+  }
+  #lockPanel {
+    width:260px;
+    height:260px;
+    border-radius:24px;
+    background:linear-gradient(145deg,#15192a,#1f2436);
+    box-shadow:0 16px 40px rgba(0,0,0,0.9);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    color:#fefefe;
+  }
+  #lockTitle {
+    font-size:16px;
+    font-weight:600;
+  }
+  #lockHint {
+    font-size:12px;
+    opacity:0.8;
+  }
+  #lockCanvas {
+    width:160px;
+    height:160px;
+    background:#050812;
+    border-radius:50%;
+    border:2px solid #30364a;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="phone">
+  <div id="phoneHeader">LIFE IN A SCHOOL</div>
+  <div id="phoneTime">8:00 AM</div>
+  <div id="phoneDay">Day 1 • Survive the schedule</div>
+  <div id="phonePeriod">Period: Homeroom</div>
+  <div>Health</div>
+  <div id="phoneHealthBarOuter">
+    <div id="phoneHealthBarInner"></div>
+  </div>
+  <div id="phoneObjective">Objective: Get to Homeroom</div>
+  <div id="phoneBadges">Badges: (saved to device)</div>
+  <div style="font-size:12px;opacity:0.7;">Mini‑map (● you, ▲ monitors, ★ quest, ⟳ portal)</div>
+  <div id="phoneMiniMap">
+    <canvas id="miniMapCanvas"></canvas>
+  </div>
+</div>
+
+<div id="msg"></div>
+<div id="badgePopup"></div>
+
+<div id="overlay">
+  <div id="overlayTitle"></div>
+  <div id="overlayText"></div>
+  <button onclick="location.reload()">Restart Week</button>
+</div>
+
+<div id="lockUI">
+  <div id="lockPanel">
+    <div id="lockTitle">Picking Locker...</div>
+    <canvas id="lockCanvas"></canvas>
+    <div id="lockHint">A/D or ←/→ to rotate • Space to try • Hard mode</div>
+  </div>
+</div>
+
+<script>
+/* ====== CANVAS SETUP ====== */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+function resize() {
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+}
+resize();
+addEventListener("resize", resize);
+
+const miniCanvas = document.getElementById("miniMapCanvas");
+const miniCtx = miniCanvas.getContext("2d");
+miniCanvas.width = 200;
+miniCanvas.height = 200;
+
+/* ====== MAP ====== */
+/*
+Tiles:
+0 floor
+1 wall
+2 homeroom
+3 library
+4 cafeteria
+5 gym
+6 principal
+7 nurse
+8 lockers
+9 portal candidate tile
+*/
+const TILE = 48;
+
+const map = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,2,0,0,8,8,0,0,0,0,0,0,1,3,0,0,8,8,0,0,0,6,0,0,9,1],
+  [1,0,0,0,8,8,0,0,0,0,0,0,1,3,0,0,8,8,0,0,0,6,0,0,0,1],
+  [1,0,0,0,8,8,0,0,0,0,0,0,1,3,0,0,8,8,0,0,0,6,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,3,0,0,0,0,0,0,0,6,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,4,0,0,0,0,0,0,0,6,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,4,0,0,0,0,0,0,0,6,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,4,0,0,0,0,0,0,0,6,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,4,0,0,0,0,0,0,0,6,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,0,0,0,0,0,7,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+const MAP_W = map[0].length;
+const MAP_H = map.length;
+
+/* ====== INPUT ====== */
+let keys = {};
+addEventListener("keydown", e => {
+  keys[e.key.toLowerCase()] = true;
+});
+addEventListener("keyup", e => {
+  keys[e.key.toLowerCase()] = false;
+});
+
+/* ====== STATE ====== */
+let badges = JSON.parse(localStorage.getItem("schoolBadges") || "{}");
+
+let day = 1;
+let periodIndex = 0;
+let timeMinutes = 8*60;
+let health = 100;
+let gameOver = false;
+
+let player = { x:TILE*2.5, y:TILE*2.5, size:30, speed:3.0 };
+let camera = { x:0, y:0 };
+
+let monitors = [
+  { x:TILE*22.5, y:TILE*5.5, size:30, speed:2.0, dir:1, zone:{y:5,x1:18,x2:24}, activeDay:1 },
+  { x:TILE*10.5, y:TILE*18.5, size:30, speed:2.4, dir:-1, zone:{y:18,x1:2,x2:22}, activeDay:2 },
+  { x:TILE*14.5, y:TILE*10.5, size:30, speed:2.8, dir:1, zone:{y:10,x1:2,x2:22}, activeDay:3 },
+];
+
+let bullyScore = 0;
+let glitchScore = 0;
+let missedObjectives = 0;
+let portalReady = false;
+let portalUsed = false;
+
+let nearInteract = null; // {type, tileX, tileY}
+
+/* ====== SCHEDULE / OBJECTIVES ====== */
+const schedule = [
+  { name:"Homeroom",   time:"8:00 AM",  targetTile:2, desc:"Go to Homeroom and check in." },
+  { name:"Period 1",   time:"9:00 AM",  targetTile:3, desc:"Visit the Library front desk." },
+  { name:"Period 2",   time:"10:00 AM", targetTile:4, desc:"Check in at the Cafeteria line." },
+  { name:"Period 3",   time:"11:00 AM", targetTile:5, desc:"Report to the Gym court." },
+  { name:"Period 4",   time:"1:00 PM",  targetTile:6, desc:"Deliver a note to the Principal." },
+  { name:"Period 5",   time:"2:00 PM",  targetTile:2, desc:"Return to Homeroom before the bell." },
+];
+
+function currentPeriod() { return schedule[periodIndex]; }
+
+/* ====== UTILS ====== */
+function tileAt(px, py) {
+  const tx = Math.floor(px/TILE);
+  const ty = Math.floor(py/TILE);
+  if (tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return 1;
+  return map[ty][tx];
+}
+function showMessage(text, time=2000) {
+  const el = document.getElementById("msg");
+  el.innerText = text;
+  el.style.display = "block";
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.style.display="none", time);
+}
+function showBadgePopup(text) {
+  const el = document.getElementById("badgePopup");
+  el.innerText = "Badge unlocked: " + text;
+  el.style.display = "block";
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.style.display="none", 2500);
+}
+function saveBadge(key,label) {
+  if (!badges[key]) {
+    badges[key] = true;
+    localStorage.setItem("schoolBadges", JSON.stringify(badges));
+    showBadgePopup(label);
+  }
+}
+
+/* ====== HEALTH ====== */
+function updatePhoneHealth() {
+  const bar = document.getElementById("phoneHealthBarInner");
+  const pct = Math.max(0,Math.min(health,100))/100;
+  bar.style.transform = `scaleX(${pct})`;
+}
+function damagePlayer(amount, reason) {
+  if (gameOver) return;
+  health -= amount;
+  if (health<0) health=0;
+  showMessage(reason + ` (-${amount} HP)`);
+  updatePhoneHealth();
+  if (health<=0) {
+    expulsionEnding("You were expelled after too many incidents.");
+  }
+}
+
+/* ====== TIME / PHONE ====== */
+function setTimeFromPeriod() {
+  const p = currentPeriod();
+  const parts = p.time.split(" ");
+  const hm = parts[0].split(":");
+  let h = parseInt(hm[0],10);
+  let m = parseInt(hm[1],10);
+  const ampm = parts[1];
+  if (ampm==="PM" && h!==12) h+=12;
+  if (ampm==="AM" && h===12) h=0;
+  timeMinutes = h*60+m;
+}
+function updatePhoneTime() {
+  const h = Math.floor(timeMinutes/60);
+  const m = (timeMinutes%60).toString().padStart(2,"0");
+  const ampm = h>=12?"PM":"AM";
+  const dh = ((h+11)%12)+1;
+  document.getElementById("phoneTime").innerText = `${dh}:${m} ${ampm}`;
+}
+function updatePhoneDayPeriodObjective() {
+  document.getElementById("phoneDay").innerText = `Day ${day} • Survive the schedule`;
+  const p = currentPeriod();
+  document.getElementById("phonePeriod").innerText = `Period: ${p.name}`;
+  document.getElementById("phoneObjective").innerText = `Objective: ${p.desc}`;
+}
+
+/* ====== MOVEMENT ====== */
+function moveEntity(ent, dx, dy) {
+  let nx = ent.x+dx;
+  let ny = ent.y+dy;
+  const r = ent.size/2;
+  const corners = [
+    {x:nx-r,y:ny-r},
+    {x:nx+r,y:ny-r},
+    {x:nx-r,y:ny+r},
+    {x:nx+r,y:ny+r},
+  ];
+  for (let c of corners) {
+    if (tileAt(c.x,c.y)===1) return;
+  }
+  ent.x = nx;
+  ent.y = ny;
+}
+function updatePlayer() {
+  if (gameOver || lockPicking.active) return;
+  let dx=0,dy=0;
+  if (keys["w"]||keys["arrowup"]) dy-=player.speed;
+  if (keys["s"]||keys["arrowdown"]) dy+=player.speed;
+  if (keys["a"]||keys["arrowleft"]) dx-=player.speed;
+  if (keys["d"]||keys["arrowright"]) dx+=player.speed;
+  if (dx&&dy){dx*=0.7;dy*=0.7;}
+  moveEntity(player,dx,dy);
+
+  const t = tileAt(player.x,player.y);
+  const p = currentPeriod();
+
+  nearInteract = null;
+
+  // room interaction (press E)
+  if (t===p.targetTile) {
+    nearInteract = {type:"objectiveRoom"};
+  }
+
+  // lockers
+  const tx = Math.floor(player.x/TILE);
+  const ty = Math.floor(player.y/TILE);
+  if (map[ty][tx]===8) {
+    nearInteract = {type:"locker",tx,ty};
+  }
+
+  // portal tile
+  if (!portalUsed && portalReady && t===9) {
+    triggerPortalEnding();
+  }
+
+  // interaction key
+  if (nearInteract && keys["e"]) {
+    keys["e"]=false;
+    if (nearInteract.type==="objectiveRoom") {
+      completeObjective();
+    } else if (nearInteract.type==="locker") {
+      attemptLocker(nearInteract.tx,nearInteract.ty);
+    }
+  }
+}
+
+/* ====== MONITORS ====== */
+function updateMonitors() {
+  if (gameOver || lockPicking.active) return;
+  for (let m of monitors) {
+    if (day < m.activeDay) continue;
+    const speed = m.speed + (day-1)*0.2;
+    // simple horizontal patrol
+    moveEntity(m, m.dir*speed, 0);
+    const tx = Math.floor(m.x/TILE);
+    const ty = Math.floor(m.y/TILE);
+    if (ty!==m.zone.y || tx<=m.zone.x1 || tx>=m.zone.x2) {
+      m.dir *= -1;
+    }
+    // chase if close
+    const dx = player.x-m.x;
+    const dy = player.y-m.y;
+    const dist = Math.hypot(dx,dy);
+    if (dist<180) {
+      const vx = (dx/dist)*(speed+0.8);
+      const vy = (dy/dist)*(speed+0.8);
+      moveEntity(m,vx,vy);
+    }
+    if (dist<26) {
+      glitchScore++;
+      damagePlayer(30,"Hall monitor caught you");
+      // reset player
+      player.x = TILE*2.5;
+      player.y = TILE*2.5;
+    }
+  }
+}
+
+/* ====== CAMERA ====== */
+function updateCamera() {
+  camera.x = player.x - canvas.width/2;
+  camera.y = player.y - canvas.height/2;
+  const maxX = MAP_W*TILE - canvas.width;
+  const maxY = MAP_H*TILE - canvas.height;
+  camera.x = Math.max(0,Math.min(camera.x,Math.max(0,maxX)));
+  camera.y = Math.max(0,Math.min(camera.y,Math.max(0,maxY)));
+}
+
+/* ====== OBJECTIVES / DAYS ====== */
+function completeObjective() {
+  if (gameOver) return;
+  showMessage("Objective complete!");
+  health = Math.min(100,health+10);
+  updatePhoneHealth();
+
+  periodIndex++;
+  if (periodIndex>=schedule.length) {
+    timeMinutes = 15*60;
+    updatePhoneTime();
+    dayComplete();
+  } else {
+    setTimeFromPeriod();
+    updatePhoneTime();
+    updatePhoneDayPeriodObjective();
+  }
+}
+function dayComplete() {
+  showMessage(`Day ${day} complete!`);
+  day++;
+  if (day>5) {
+    evaluateEnding();
+    return;
+  }
+  periodIndex=0;
+  setTimeFromPeriod();
+  updatePhoneTime();
+  updatePhoneDayPeriodObjective();
+  player.x = TILE*2.5;
+  player.y = TILE*2.5;
+}
+function maybeEnablePortal() {
+  if (!portalReady && glitchScore>=3 && missedObjectives>=1) {
+    portalReady = true;
+    showMessage("You feel like something is wrong with this school...");
+  }
+}
+
+/* ====== ENDINGS ====== */
+function showOverlay(title,text) {
+  const o = document.getElementById("overlay");
+  document.getElementById("overlayTitle").innerText = title;
+  document.getElementById("overlayText").innerText = text;
+  o.style.display = "flex";
+}
+function expulsionEnding(text) {
+  gameOver=true;
+  saveBadge("Expelled","Expelled");
+  showOverlay("EXPULSION", text);
+}
+function goodEnding() {
+  gameOver=true;
+  saveBadge("GoodEnding","Good Ending");
+  saveBadge("SurvivedWeek","Survived the Week");
+  if (health===100) saveBadge("PerfectWeek","Perfect Week");
+  showOverlay("GOOD ENDING",
+    "You survived the entire week, completed your schedule, and avoided major chaos.\n\nMaybe this school isn’t so bad.");
+}
+function bullyEnding() {
+  gameOver=true;
+  saveBadge("BullyEnding","Bully Ending");
+  showOverlay("BULLY ENDING",
+    "You didn’t just survive the school.\nYou became the problem.\n\nThe hall monitors know your name now.");
+}
+function glitchEnding() {
+  gameOver=true;
+  saveBadge("GlitchEnding","System Break");
+  showOverlay("SYSTEM BREAK",
+    "You broke the school’s internal logic.\nBells loop, schedules overlap, and nothing makes sense.\n\nThe system will remember this.");
+}
+function howDidWeGetHereEnding() {
+  gameOver=true;
+  saveBadge("HowDidWeGetHere","How Did We Get Here?");
+  showOverlay("HOW DID WE GET HERE?",
+    "You slipped out of the school and into something else.\n\nA small glitching alien student stares at you.\n“Y0u w3r3n’t supp0s3d t0 f1nd th1s pl4c3.”");
+}
+function triggerPortalEnding() {
+  portalUsed=true;
+  howDidWeGetHereEnding();
+}
+function evaluateEnding() {
+  if (portalUsed) { howDidWeGetHereEnding(); return; }
+  if (health<40 && glitchScore>=4) { bullyEnding(); return; }
+  if (glitchScore>=6 || missedObjectives>=3) { glitchEnding(); return; }
+  goodEnding();
+}
+
+/* ====== LOCK‑PICKING MINI‑GAME (HARD) ====== */
+const lockUI = document.getElementById("lockUI");
+const lockCanvas = document.getElementById("lockCanvas");
+const lctx = lockCanvas.getContext("2d");
+lockCanvas.width = 160;
+lockCanvas.height = 160;
+
+let lockPicking = {
+  active:false,
+  angle:0,
+  speed:0.12,
+  sweetStart:0,
+  sweetEnd:0,
+  fails:0,
+  success:false,
+};
+
+function startLockPicking() {
+  lockPicking.active=true;
+  lockPicking.angle=0;
+  lockPicking.speed=0.18 + (day-1)*0.03;
+  lockPicking.fails=0;
+  lockPicking.success=false;
+  const width = (Math.PI/180)*5; // ~5 degrees hard
+  const base = Math.random()*Math.PI*2;
+  lockPicking.sweetStart = base;
+  lockPicking.sweetEnd = base+width;
+  lockUI.style.display="flex";
+}
+function endLockPicking(success) {
+  lockPicking.active=false;
+  lockUI.style.display="none";
+  if (success) {
+    showMessage("Locker opened.");
+    health = Math.min(100,health+5);
+    updatePhoneHealth();
+  } else {
+    glitchScore++;
+    damagePlayer(5,"Lock‑picking stress");
+    // spawn monitor attention
+    monitors[0].x = player.x + TILE*3;
+    monitors[0].y = player.y;
+  }
+  maybeEnablePortal();
+}
+function updateLockPicking() {
+  if (!lockPicking.active) return;
+  // controls
+  if (keys["a"]||keys["arrowleft"]) lockPicking.angle -= lockPicking.speed;
+  if (keys["d"]||keys["arrowright"]) lockPicking.angle += lockPicking.speed;
+  // normalize
+  const twoPI = Math.PI*2;
+  lockPicking.angle = (lockPicking.angle+twoPI)%twoPI;
+
+  // attempt
+  if (keys[" "] || keys["space"]) {
+    keys[" "] = keys["space"] = false;
+    const a = lockPicking.angle;
+    const inSweet = (a>=lockPicking.sweetStart && a<=lockPicking.sweetEnd);
+    if (inSweet) {
+      lockPicking.success=true;
+      endLockPicking(true);
+    } else {
+      lockPicking.fails++;
+      showMessage("CLUNK! Missed the pin.");
+      if (lockPicking.fails>=3) {
+        endLockPicking(false);
+      }
+    }
+  }
+
+  // draw
+  lctx.clearRect(0,0,lockCanvas.width,lockCanvas.height);
+  const cx = lockCanvas.width/2;
+  const cy = lockCanvas.height/2;
+  const r = 60;
+
+  // outer ring
+  lctx.strokeStyle="#3a425c";
+  lctx.lineWidth=6;
+  lctx.beginPath();
+  lctx.arc(cx,cy,r,0,Math.PI*2);
+  lctx.stroke();
+
+  // sweet spot
+  lctx.strokeStyle="#80deea";
+  lctx.lineWidth=5;
+  lctx.beginPath();
+  lctx.arc(cx,cy,r-4,lockPicking.sweetStart,lockPicking.sweetEnd);
+  lctx.stroke();
+
+  // pointer
+  lctx.strokeStyle="#ffcc4d";
+  lctx.lineWidth=4;
+  lctx.beginPath();
+  lctx.moveTo(cx,cy);
+  lctx.lineTo(cx+Math.cos(lockPicking.angle)*(r-8),
+              cy+Math.sin(lockPicking.angle)*(r-8));
+  lctx.stroke();
+}
+
+/* ====== LOCKER INTERACTION ====== */
+function attemptLocker(tx,ty) {
+  // 50% chance it's your locker (free), 50% lock‑pick
+  if (Math.random()<0.5) {
+    showMessage("You open your locker and grab a snack. (+10 HP)");
+    health = Math.min(100,health+10);
+    updatePhoneHealth();
+  } else {
+    showMessage("This isn’t your locker…");
+    startLockPicking();
+  }
+}
+
+/* ====== DRAWING ====== */
+function drawMap() {
+  const startX = Math.floor(camera.x/TILE);
+  const startY = Math.floor(camera.y/TILE);
+  const endX = startX + Math.ceil(canvas.width/TILE);
+  const endY = startY + Math.ceil(canvas.height/TILE);
+
+  for (let y=startY; y<=endY; y++) {
+    for (let x=startX; x<=endX; x++) {
+      if (x<0||y<0||x>=MAP_W||y>=MAP_H) continue;
+      const tile = map[y][x];
+      const sx = x*TILE - camera.x;
+      const sy = y*TILE - camera.y;
+
+      // floor
+      ctx.fillStyle = tile===1 ? "#1b1f30" : "#252a3c";
+      ctx.fillRect(sx,sy,TILE,TILE);
+
+      // room colors
+      if (tile===2) { // homeroom
+        ctx.fillStyle="#4fc3f7";
+        ctx.fillRect(sx+4,sy+4,TILE-8,TILE-8);
+        ctx.fillStyle="#0b1020";
+        ctx.font="14px system-ui";
+        ctx.fillText("HR",sx+10,sy+24);
+      }
+      if (tile===3) { // library
+        ctx.fillStyle="#81c784";
+        ctx.fillRect(sx+4,sy+4,TILE-8,TILE-8);
+        ctx.fillStyle="#0b1020";
+        ctx.font="14px system-ui";
+        ctx.fillText("LIB",sx+6,sy+24);
+      }
+      if (tile===4) { // cafeteria
+        ctx.fillStyle="#ffb74d";
+        ctx.fillRect(sx+4,sy+4,TILE-8,TILE-8);
+        ctx.fillStyle="#0b1020";
+        ctx.font="14px system-ui";
+        ctx.fillText("CAF",sx+6,sy+24);
+      }
+      if (tile===5) { // gym
+        ctx.fillStyle="#ba68c8";
+        ctx.fillRect(sx+4,sy+4,TILE-8,TILE-8);
+        ctx.fillStyle="#0b1020";
+        ctx.font="14px system-ui";
+        ctx.fillText("GYM",sx+4,sy+24);
+      }
+      if (tile===6) { // principal
+        ctx.fillStyle="#ef5350";
+        ctx.fillRect(sx+4,sy+4,TILE-8,TILE-8);
+        ctx.fillStyle="#0b1020";
+        ctx.font="14px system-ui";
+        ctx.fillText("PR",sx+10,sy+24);
+      }
+      if (tile===7) { // nurse
+        ctx.fillStyle="#ffeb3b";
+        ctx.fillRect(sx+4,sy+4,TILE-8,TILE-8);
+        ctx.fillStyle="#0b1020";
+        ctx.font="14px system-ui";
+        ctx.fillText("NR",sx+8,sy+24);
+      }
+      if (tile===8) { // lockers
+        ctx.fillStyle="#3949ab";
+        ctx.fillRect(sx+6,sy+6,TILE-12,TILE-12);
+        ctx.strokeStyle="#1a237e";
+        ctx.lineWidth=2;
+        ctx.strokeRect(sx+6,sy+6,TILE-12,TILE-12);
+        ctx.strokeStyle="#c5cae9";
+        ctx.beginPath();
+        ctx.moveTo(sx+10,sy+12);
+        ctx.lineTo(sx+TILE-10,sy+12);
+        ctx.stroke();
+      }
+      if (tile===9 && portalReady) {
+        ctx.strokeStyle="#80deea";
+        ctx.lineWidth=3;
+        ctx.beginPath();
+        ctx.arc(sx+TILE/2,sy+TILE/2,14,0,Math.PI*2);
+        ctx.stroke();
+      }
+    }
+  }
+}
+function drawEntity(ent,color) {
+  const sx = ent.x - camera.x;
+  const sy = ent.y - camera.y;
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.arc(sx,sy,ent.size/2,0,Math.PI*2);
+  ctx.fill();
+}
+function drawFog() {
+  ctx.fillStyle="rgba(0,0,0,0.85)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  const sx = player.x - camera.x;
+  const sy = player.y - camera.y;
+  const r = 180;
+  const g = ctx.createRadialGradient(sx,sy,r*0.3,sx,sy,r);
+  g.addColorStop(0,"rgba(0,0,0,0)");
+  g.addColorStop(1,"rgba(0,0,0,0.95)");
+  ctx.globalCompositeOperation="destination-out";
+  ctx.fillStyle=g;
+  ctx.beginPath();
+  ctx.arc(sx,sy,r,0,Math.PI*2);
+  ctx.fill();
+  ctx.globalCompositeOperation="source-over";
+}
+function drawMiniMap() {
+  miniCtx.clearRect(0,0,miniCanvas.width,miniCanvas.height);
+  const w = miniCanvas.width;
+  const h = miniCanvas.height;
+  const sx = w/MAP_W;
+  const sy = h/MAP_H;
+
+  const p = currentPeriod();
+  let questPos = null;
+
+  for (let y=0;y<MAP_H;y++) {
+    for (let x=0;x<MAP_W;x++) {
+      const t = map[y][x];
+      if (t===1) miniCtx.fillStyle="#151827";
+      else miniCtx.fillStyle="#22263a";
+      miniCtx.fillRect(x*sx,y*sy,sx,sy);
+
+      if (t===2) miniCtx.fillStyle="#4fc3f7";
+      if (t===3) miniCtx.fillStyle="#81c784";
+      if (t===4) miniCtx.fillStyle="#ffb74d";
+      if (t===5) miniCtx.fillStyle="#ba68c8";
+      if (t===6) miniCtx.fillStyle="#ef5350";
+      if (t===7) miniCtx.fillStyle="#ffeb3b";
+      if (t===8) miniCtx.fillStyle="#3949ab";
+      if (t===9 && portalReady) miniCtx.fillStyle="#80deea";
+      if (t!==0 && t!==1) miniCtx.fillRect(x*sx,y*sy,sx,sy);
+
+      if (t===p.targetTile) questPos = {x,y};
+    }
+  }
+
+  // quest star
+  if (questPos) {
+    miniCtx.fillStyle="#ffd95b";
+    const qx = questPos.x*sx+sx/2;
+    const qy = questPos.y*sy+sy/2;
+    miniCtx.beginPath();
+    miniCtx.arc(qx,qy,3,0,Math.PI*2);
+    miniCtx.fill();
+  }
+
+  // player
+  miniCtx.fillStyle="#ffffff";
+  const px = (player.x/TILE)*sx;
+  const py = (player.y/TILE)*sy;
+  miniCtx.beginPath();
+  miniCtx.arc(px,py,3,0,Math.PI*2);
+  miniCtx.fill();
+
+  // monitors
+  miniCtx.fillStyle="#ff5252";
+  for (let m of monitors) {
+    if (day < m.activeDay) continue;
+    const mx = (m.x/TILE)*sx;
+    const my = (m.y/TILE)*sy;
+    miniCtx.beginPath();
+    miniCtx.moveTo(mx,my-4);
+    miniCtx.lineTo(mx-3,my+3);
+    miniCtx.lineTo(mx+3,my+3);
+    miniCtx.closePath();
+    miniCtx.fill();
+  }
+}
+
+/* ====== MAIN LOOP ====== */
+function loop() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  updatePlayer();
+  updateMonitors();
+  updateCamera();
+  maybeEnablePortal();
+  updateLockPicking();
+
+  drawMap();
+  drawEntity(player,"#ffd95b");
+  for (let m of monitors) {
+    if (day < m.activeDay) continue;
+    drawEntity(m,"#ff5252");
+  }
+  drawFog();
+  drawMiniMap();
+
+  requestAnimationFrame(loop);
+}
+
+/* ====== INIT ====== */
+setTimeFromPeriod();
+updatePhoneTime();
+updatePhoneDayPeriodObjective();
+updatePhoneHealth();
+loop();
+</script>
+</body>
+</html>

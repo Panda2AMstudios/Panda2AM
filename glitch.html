@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SdkfjsIEJ490*sd — Panda2AMStudios</title>
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        background: #000;
+        color: #fff;
+        font-family: monospace;
+        overflow: hidden;
+    }
+    #game {
+        display: block;
+        margin: 0 auto;
+        background: #05050a;
+        image-rendering: pixelated;
+        border: 2px solid #444;
+    }
+</style>
+</head>
+<body>
+<canvas id="game" width="800" height="450"></canvas>
+<script>
+// =======================================
+// STATIC ARENA GLITCH GAME — FINAL BUILD
+// =======================================
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+
+// --------- GAME STATES ---------
+const INTRO = 0;
+const LOADING = 1;
+const CUTSCENE = 2;
+const PLAY = 3;
+const CUT10 = 4;
+const PLAY10 = 5;
+const WIN = 6;
+const DEAD = 7;
+
+let state = INTRO;
+let frame = 0;
+let stage = 1;
+
+// --------- PLAYER ---------
+let player = {
+    x: W/2,
+    y: H/2,
+    r: 12,
+    baseSpeed: 1.6,
+    hp: 100,
+    vx: 0,
+    vy: 0,
+    alive: true
+};
+
+let keys = {};
+window.addEventListener("keydown", e=>{
+    keys[e.key] = true;
+    if(state===INTRO && e.key===" ") { state=LOADING; frame=0; }
+});
+window.addEventListener("keyup", e=> keys[e.key]=false);
+
+// --------- ORBS ---------
+let orbs = [];
+function spawnOrbs(n){
+    orbs=[];
+    for(let i=0;i<n;i++){
+        orbs.push({
+            x: Math.random()*W,
+            y: Math.random()*H,
+            collected:false,
+            off:0
+        });
+    }
+}
+function updateOrbs(){
+    orbs.forEach(o=>{
+        if(!o.collected){
+            o.off = (Math.random()-0.5)*3;
+            if(dist(player.x,player.y,o.x,o.y)<20){
+                o.collected=true;
+            }
+        }
+    });
+}
+function drawOrbs(){
+    orbs.forEach(o=>{
+        if(!o.collected){
+            let sx=o.x+o.off, sy=o.y+o.off;
+            let g=ctx.createRadialGradient(sx,sy,0,sx,sy,10);
+            g.addColorStop(0,"#fff");
+            g.addColorStop(1,Math.random()<0.5?"#a200ff":"#00eaff");
+            ctx.fillStyle=g;
+            ctx.beginPath();
+            ctx.arc(sx,sy,10,0,Math.PI*2);
+            ctx.fill();
+        }
+    });
+}
+function allOrbs(){ return orbs.every(o=>o.collected); }
+
+
+// --------- VOID BLOCKS ---------
+let vblocks=[];
+function spawnVoidBlocks(){
+    vblocks=[];
+    for(let i=0;i<12;i++){
+        let w=50+Math.random()*150;
+        let h=50+Math.random()*150;
+        let x=Math.random()*(W-w);
+        let y=Math.random()*(H-h);
+        vblocks.push({x,y,w,h});
+    }
+}
+function onVoidBlock(){
+    return vblocks.some(b=>player.x>b.x && player.x<b.x+b.w && player.y>b.y && player.y<b.y+b.h);
+}
+function drawVoidBlocks(){
+    vblocks.forEach(b=>{
+        ctx.fillStyle="#050008";
+        ctx.fillRect(b.x,b.y,b.w,b.h);
+        for(let i=0;i<40;i++){
+            ctx.fillStyle=Math.random()<0.5?"#330033":"#001122";
+            let bw=8+Math.random()*20;
+            let bh=8+Math.random()*20;
+            let bx=b.x+Math.random()*(b.w-bw);
+            let by=b.y+Math.random()*(b.h-bh);
+            ctx.fillRect(bx,by,bw,bh);
+        }
+    });
+}
+function drawVoidGlitch(){
+    ctx.globalCompositeOperation="lighter";
+    for(let y=0;y<H;y+=12){
+        if(Math.random()<0.3){
+            let off=(Math.random()-0.5)*6;
+            ctx.strokeStyle=Math.random()<0.5?"#ff00ff":"#00ffff";
+            ctx.beginPath();
+            ctx.moveTo(off,y);
+            ctx.lineTo(W+off,y);
+            ctx.stroke();
+        }
+    }
+    ctx.globalCompositeOperation="source-over";
+}
+
+// --------- ENEMIES ---------
+let enemies=[];
+function spawnEnemies(n){
+    enemies=[];
+    for(let i=0;i<n;i++){
+        enemies.push({
+            x:Math.random()*W,
+            y:Math.random()*H,
+            r:10,
+            hp:30+stage*5,
+            speed:2+stage*0.1,
+            stun:0
+        });
+    }
+}
+function updateEnemies(){
+    enemies.forEach(e=>{
+        if(e.stun>0){ e.stun--; return; }
+        let dx=player.x-e.x, dy=player.y-e.y;
+        let d=Math.hypot(dx,dy);
+        e.x+=dx/d*e.speed;
+        e.y+=dy/d*e.speed;
+        if(dist(player.x,player.y,e.x,e.y)<e.r+player.r){
+            player.hp-=0.25;
+            if(player.hp<=0){ state=DEAD; }
+        }
+    });
+    enemies=enemies.filter(e=>e.hp>0);
+}
+
+// --------- DRAW ENEMIES (LIGHT PURPLE + GLITCH) ---------
+function drawEnemies(){
+    enemies.forEach(e=>{
+        let jitterX = (Math.random()-0.5)*2;
+        let jitterY = (Math.random()-0.5)*2;
+
+        let sx = e.x + jitterX;
+        let sy = e.y + jitterY;
+
+        let base = "#c080ff";
+        let glitch = Math.random() < 0.3 ? (Math.random()<0.5 ? "#ffffff" : "#00eaff") : base;
+
+        ctx.fillStyle = e.stun>0 ? "#5555ff" : glitch;
+        ctx.beginPath();
+        ctx.arc(sx, sy, e.r, 0, Math.PI*2);
+        ctx.fill();
+    });
+}
+
+// --------- TASER (20 SECOND COOLDOWN) ---------
+let taser={level:1,cd:0,max:1200};
+window.addEventListener("mousedown",()=>fireTaser());
+function setTaser(l){ taser.level=l; taser.max=1200; }
+function fireTaser(){
+    if(taser.cd>0) return;
+    taser.cd=taser.max;
+    let range=70+taser.level*6;
+    let dmg=4+taser.level*1;
+    let stun=30+taser.level*4;
+    enemies.forEach(e=>{
+        if(dist(player.x,player.y,e.x,e.y)<range){
+            e.hp-=dmg;
+            e.stun=stun;
+        }
+    });
+    if(stage===10 && boss.alive && dist(player.x,player.y,boss.x,boss.y)<range){
+        boss.hp-=dmg*0.2;
+    }
+}
+function updateTaser(){ if(taser.cd>0) taser.cd--; }
+function drawTaserUI(){
+    ctx.fillStyle="#fff";
+    ctx.fillText("TASER L"+taser.level,10,20);
+    ctx.fillText("CD:"+taser.cd,10,35);
+}
+
+// --------- BOSS ---------
+let boss={
+    x:W/2,y:H/2,w:40,h:80,hp:500,alive:false,
+    dash:0,tele:0,melee:0,knife:0,jit:0
+};
+let knives=[];
+function spawnBoss(){
+    boss.x=W/2; boss.y=H/2; boss.hp=500; boss.alive=true;
+    boss.dash=120; boss.tele=3600; boss.melee=90; boss.knife=120;
+    knives=[];
+}
+function updateBoss(){
+    if(!boss.alive) return;
+    boss.jit=(Math.random()-0.5)*4;
+    let dx=player.x-boss.x, dy=player.y-boss.y;
+    let d=Math.hypot(dx,dy);
+    boss.x+=dx/d*0.6;
+    boss.y+=dy/d*0.6;
+
+    if(boss.tele>0) boss.tele--;
+    else{
+        boss.x=player.x+(Math.random()*160-80);
+        boss.y=player.y+(Math.random()*160-80);
+        boss.tele=3600;
+    }
+
+    if(boss.dash>0) boss.dash--;
+    else{
+        boss.x+=dx/d*40;
+        boss.y+=dy/d*40;
+        boss.dash=180;
+    }
+
+    if(boss.melee>0) boss.melee--;
+    else{
+        if(dist(player.x,player.y,boss.x,boss.y)<40){
+            player.hp-=40;
+            let kdx=player.x-boss.x, kdy=player.y-boss.y;
+            let kd=Math.hypot(kdx,kdy);
+            player.vx=(kdx/kd)*12;
+            player.vy=(kdy/kd)*12;
+            if(player.hp<=0) state=DEAD;
+        }
+        boss.melee=120;
+    }
+
+    if(boss.knife>0) boss.knife--;
+    else{
+        fireKnives();
+        boss.knife=150;
+    }
+
+    if(boss.hp<=0) boss.alive=false;
+}
+function fireKnives(){
+    for(let i=0;i<8;i++){
+        let a=(Math.PI*2/8)*i;
+        knives.push({x:boss.x,y:boss.y,vx:Math.cos(a)*4,vy:Math.sin(a)*4});
+    }
+}
+function updateKnives(){
+    knives.forEach(k=>{
+        k.x+=k.vx; k.y+=k.vy;
+        if(k.x<0||k.x>W||k.y<0||k.y>H) k.dead=true;
+        if(dist(player.x,player.y,k.x,k.y)<12){
+            player.hp-=999;
+            k.dead=true;
+            if(player.hp<=0) state=DEAD;
+        }
+    });
+    knives=knives.filter(k=>!k.dead);
+}
+function drawBoss(){
+    if(!boss.alive) return;
+    let sx=boss.x+boss.jit, sy=boss.y-boss.jit;
+    ctx.fillStyle="#000";
+    ctx.fillRect(sx-boss.w/2,sy-boss.h/2,boss.w,boss.h);
+    ctx.fillStyle="#fff";
+    ctx.fillRect(sx-8,sy-20,6,6);
+    ctx.fillRect(sx+2,sy-20,6,6);
+    ctx.fillStyle="#444";
+    ctx.fillRect(200,20,400,10);
+    ctx.fillStyle="#ff00ff";
+    ctx.fillRect(200,20,(boss.hp/500)*400,10);
+}
+function drawKnives(){
+    ctx.fillStyle="#ffcccc";
+    knives.forEach(k=>{
+        ctx.fillRect(k.x-2,k.y-2,4,4);
+    });
+}
+
+// --------- PLAYER UPDATE ---------
+function updatePlayer(){
+    let sp=player.baseSpeed;
+    if(onVoidBlock()) sp*=0.5;
+
+    let vx=0,vy=0;
+    if(keys["w"]||keys["ArrowUp"]) vy-=sp;
+    if(keys["s"]||keys["ArrowDown"]) vy+=sp;
+    if(keys["a"]||keys["ArrowLeft"]) vx-=sp;
+    if(keys["d"]||keys["ArrowRight"]) vx+=sp;
+
+    player.vx+=vx*0.5;
+    player.vy+=vy*0.5;
+    player.vx*=0.8;
+    player.vy*=0.8;
+
+    player.x+=player.vx;
+    player.y+=player.vy;
+
+    if(player.x<player.r) player.x=player.r;
+    if(player.x>W-player.r) player.x=W-player.r;
+    if(player.y<player.r) player.y=player.r;
+    if(player.y>H-player.r) player.y=H-player.r;
+}
+function drawPlayer(){
+    ctx.fillStyle="#fff";
+    ctx.beginPath();
+    ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
+    ctx.fill();
+}
+
+// --------- STAGE MGMT ---------
+function startStage(s){
+    stage=s;
+    player.x=W/2; player.y=H/2; player.hp=100;
+
+    const orbCounts=[0,50,75,100,125,150,175,200,225,300];
+    const enemyCounts=[0,8,12,16,20,26,32,40,50,65];
+
+    spawnOrbs(orbCounts[s]);
+    spawnEnemies(enemyCounts[s]);
+    spawnVoidBlocks();
+    setTaser(s);
+
+    if(s===10){ spawnBoss(); state=CUT10; frame=0; }
+}
+function checkStage(){
+    if(stage<10){
+        if(allOrbs()){
+            startStage(stage+1);
+            state=CUTSCENE;
+            frame=0;
+        }
+    } else {
+        if(allOrbs() && !boss.alive){
+            state=WIN;
+        }
+    }
+}
+
+// --------- INTRO / LOADING / CUTSCENES ---------
+function drawIntro(){
+    ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#fff"; ctx.font="20px monospace";
+    ctx.fillText("Panda2AMStudios presents",220,180);
+    ctx.fillStyle=Math.random()<0.5?"#ff00ff":"#00ffff";
+    ctx.font="32px monospace";
+    ctx.fillText("SdkfjsIEJ490*sd",240,230);
+    ctx.fillStyle="#888"; ctx.font="14px monospace";
+    ctx.fillText("press SPACE to continue",290,280);
+}
+
+function drawLoading(){
+    ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H);
+
+    ctx.fillStyle="#fff";
+    ctx.font="20px monospace";
+    ctx.fillText("LOADING...", 350, 200);
+
+    // flashing lights warning
+    ctx.fillStyle = Math.random() < 0.5 ? "#ff00ff" : "#ffffff";
+    ctx.font = "14px monospace";
+    ctx.fillText("this game contains flashing lights", 260 + (Math.random()*2-1), 230 + (Math.random()*2-1));
+
+    // bottom-right glitch text
+    ctx.font = "14px monospace";
+    ctx.fillStyle = Math.random() < 0.5 ? "#ff00ff" : "#00ffff";
+    ctx.fillText(
+        "glitchglitchglitch".split("").sort(()=>Math.random()-0.5).join(""),
+        W - 200 + (Math.random()*4-2),
+        H - 20 + (Math.random()*4-2)
+    );
+
+    frame++;
+    if(frame>120){ startStage(1); state=CUTSCENE; frame=0; }
+}
+
+function drawCutscene(){
+    ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#fff"; ctx.fillText("STAGE "+stage,350,200);
+    ctx.fillStyle=Math.random()<0.5?"#ff00ff":"#00ffff";
+    ctx.fillText("collect all fragments",310,240);
+    frame++;
+    if(frame>120) state=PLAY;
+}
+
+function drawCut10(){
+    ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#fff"; ctx.fillText("FINAL STAGE",330,200);
+    ctx.fillStyle=Math.random()<0.5?"#ff00ff":"#00ffff";
+    ctx.fillText("collect fragments AND kill boss",260,240);
+    frame++;
+    if(frame>120) state=PLAY10;
+}
+
+// --------- WIN / DEAD ---------
+function drawWin(){
+    ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#fff"; ctx.fillText("GLITCH WIN",350,220);
+}
+function drawDead(){
+    ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#f00"; ctx.fillText("YOU DIED",360,220);
+}
+
+// --------- MAIN LOOP ---------
+function dist(a,b,c,d){ return Math.hypot(a-c,b-d); }
+
+function update(){
+    if(state===PLAY || state===PLAY10){
+        updatePlayer();
+        updateEnemies();
+        updateOrbs();
+        updateTaser();
+        if(state===PLAY10){
+            updateBoss();
+            updateKnives();
+        }
+        checkStage();
+    }
+}
+
+function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    if(state===INTRO) return drawIntro();
+    if(state===LOADING) return drawLoading();
+    if(state===CUTSCENE) return drawCutscene();
+    if(state===CUT10) return drawCut10();
+    if(state===WIN) return drawWin();
+    if(state===DEAD) return drawDead();
+
+    drawVoidBlocks();
+    drawOrbs();
+    drawEnemies();
+    if(state===PLAY10){
+        drawBoss();
+        drawKnives();
+    }
+    drawPlayer();
+    if(onVoidBlock()) drawVoidGlitch();
+
+    ctx.fillStyle="#fff";
+    
+    ctx.fillText("STAGE "+stage,W-120,35);
+    drawTaserUI();
+}
+
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

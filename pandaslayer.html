@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Panda Slayer: Shadows of the Demon King</title>
+    <style>
+        body {
+            margin: 0;
+            background: #050608;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #111;
+        }
+        #gameCanvas {
+            background: #000;
+            display: block;
+            margin: 0 auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid #333;
+        }
+        #storyPanel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70%;
+            max-width: 800px;
+            padding: 15px;
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            border: 2px solid #555;
+            border-radius: 8px;
+            display: none;
+        }
+        #storyChapterTitle {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        #storyText {
+            min-height: 60px;
+        }
+        #storyPanel button {
+            background: #444;
+            color: #fff;
+            border: 1px solid #777;
+            padding: 5px 12px;
+            cursor: pointer;
+        }
+        #storyPanel button:hover {
+            background: #666;
+        }
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 6px;
+            border: 1px solid #444;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <!-- Game canvas (your top-down action RPG goes here) -->
+        <canvas id="gameCanvas" width="800" height="450"></canvas>
+
+        <!-- Simple HUD -->
+        <div id="hud">
+            <div>🐼 Panda Slayer</div>
+            <div id="hudChapter">Chapter: Prologue</div>
+        </div>
+
+        <!-- STORY / CUTSCENE PANEL -->
+        <div id="storyPanel">
+            <div id="storyChapterTitle">Chapter</div>
+            <div id="storyText">...</div>
+            <div style="text-align:right; margin-top:10px;">
+                <button onclick="advanceStory()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
+
+/* ============================
+   PANDA SLAYER STORY SYSTEM
+============================ */
+
+const storyChapters = {
+    prologue: {
+        title: "Prologue — The Night of Ash",
+        lines: [
+            "Your village burns. Shadows crawl across the bamboo forest.",
+            "The Demon King's general, Obsidian Fang, leads the assault.",
+            "You, Kairo the Panda, wake under the rubble, surrounded by smoke and ash.",
+            "Everyone you knew is gone.",
+            "Narrator: \"In one night, the world you knew was taken. But from ruin… a slayer rises.\"",
+            "You swear revenge."
+        ]
+    },
+    chapter1: {
+        title: "Chapter 1 — The Path of Bamboo",
+        lines: [
+            "You travel to the Bamboo Monastery, home of the ancient Panda Breathing style.",
+            "Elder Renshu stands at the gate, his eyes heavy with history.",
+            "Elder Renshu: \"You carry loss in your eyes. But also fire. Come.\"",
+            "He teaches you the basics: light attacks, heavy attacks, dash, and Focus Mode.",
+            "Narrator: \"Strength alone is wild. Strength with purpose becomes a weapon.\"",
+            "Your first trial awaits: the corrupted Stoneback Boar."
+        ]
+    },
+    chapter2: {
+        title: "Chapter 2 — The Whispering Marsh",
+        lines: [
+            "Fog wraps around your ankles as you step into the Whispering Marsh.",
+            "Voices echo from nowhere, replaying your fears and doubts.",
+            "A fox spirit appears, glowing faintly.",
+            "Luma: \"If you listen too long, the whispers become chains. Stay close.\"",
+            "You feel a strange pressure in your chest — fear made real.",
+            "Narrator: \"In the marsh, the enemy is not only before you… but within you.\"",
+            "The Marsh Siren rises from the water, eyes glowing with hypnotic light."
+        ]
+    },
+    chapter3: {
+        title: "Chapter 3 — The Iron City",
+        lines: [
+            "Smoke stacks pierce the sky. Gears grind. The Iron City is under siege.",
+            "Demons tear through metal streets while panicked pandas flee.",
+            "You pick up a new weapon: throwing chakrams forged from scrap.",
+            "Narrator: \"In the clash of steel and shadow, resolve is tempered.\"",
+            "An enormous figure lands before you, shaking the ground.",
+            "Ironclaw Enforcer: \"Orders are orders. Your world ends here.\""
+        ]
+    },
+    chapter4: {
+        title: "Chapter 4 — The Frozen Summit",
+        lines: [
+            "The air thins as you climb the Frozen Summit.",
+            "Snow blinds your vision. Wind claws at your fur.",
+            "An ancient shrine stands alone in the storm.",
+            "Frost Warden: \"Only those who endure the cold may wield its edge.\"",
+            "You survive the trials and unlock Frost Breathing.",
+            "Narrator: \"Pain is a teacher. The summit, your classroom.\""
+        ]
+    },
+    chapter5: {
+        title: "Chapter 5 — The Forest of Echoes",
+        lines: [
+            "The Forest of Echoes hums with memories.",
+            "You see your village, whole again… but wrong.",
+            "Luma: \"Echoes are not truth. They are traps wearing familiar faces.\"",
+            "You watch an illusion of yourself failing to save your family.",
+            "Narrator: \"The past cannot be changed. But it can be faced.\"",
+            "From the shadows, a beast emerges, mimicking your stance.",
+            "Echo Beast: \"I am every doubt you ever fed.\""
+        ]
+    },
+    chapter6: {
+        title: "Chapter 6 — The Demon King's Army",
+        lines: [
+            "The battlefield stretches to the horizon.",
+            "Demons clash with warriors from the Bamboo Monastery and the Iron City.",
+            "Allies you met along the way fight at your side.",
+            "Narrator: \"No one stands alone at the edge of the world.\"",
+            "Old foes return, twisted by deeper corruption.",
+            "You cut through waves of enemies, carving a path to Obsidian Fang."
+        ]
+    },
+    chapter7: {
+        title: "Chapter 7 — Obsidian Fang",
+        lines: [
+            "You step onto a floating arena suspended over a bottomless void.",
+            "Obsidian Fang waits, blade drawn, cloak of shadows swirling.",
+            "Obsidian Fang: \"You survived the culling. Impressive… but pointless.\"",
+            "He moves with terrifying speed, each strike fueled by stolen souls.",
+            "Mid‑battle, he laughs.",
+            "Obsidian Fang: \"The Demon King does not want your death. He wants your soul.\"",
+            "Narrator: \"Vengeance brought you here. Truth will carry you further.\"",
+            "With a final clash, you break his blade and strike him down.",
+            "Obsidian Fang: \"He waits… in the Abyss…\""
+        ]
+    },
+    final: {
+        title: "Final Chapter — The Demon King",
+        lines: [
+            "You descend into the Abyssal Throne, where stone floats in a sea of red mist.",
+            "The air is heavy, every breath a struggle.",
+            "Umbra Rex, the Demon King, rises from the darkness.",
+            "Umbra Rex: \"You are the last ember of a dead world. I will snuff you out.\"",
+            "Phase 1: He attacks with blinding speed and shadow blades.",
+            "Phase 2: The arena shatters, and a storm of souls swirls around you.",
+            "Narrator: \"This is where vengeance ends… and destiny begins.\"",
+            "Phase 3: His true form towers above you, a kaiju of horns and flame.",
+            "You unleash Panda Breathing: Final Form, pouring everything into one last strike.",
+            "Umbra Rex falls. The Abyss begins to crumble.",
+            "You awaken on a hill overlooking your homeland, bathed in dawn light.",
+            "Elder Renshu: \"You were forged in loss… but you live in purpose.\"",
+            "Luma fades, smiling.",
+            "Narrator: \"From shadows, a slayer rose. From a slayer… a guardian remains.\""
+        ]
+    }
+};
+
+let currentStoryChapter = null;
+let currentStoryIndex = 0;
+let gamePaused = false;
+
+// DOM references
+const storyPanel = document.getElementById("storyPanel");
+const storyTitleEl = document.getElementById("storyChapterTitle");
+const storyTextEl = document.getElementById("storyText");
+const hudChapterEl = document.getElementById("hudChapter");
+
+/* Start a chapter cutscene */
+function startStoryChapter(chapterKey) {
+    const chapter = storyChapters[chapterKey];
+    if (!chapter) {
+        console.warn("Unknown chapter:", chapterKey);
+        return;
+    }
+
+    currentStoryChapter = chapterKey;
+    currentStoryIndex = 0;
+
+    storyTitleEl.textContent = chapter.title;
+    storyTextEl.textContent = chapter.lines[0] || "";
+    storyPanel.style.display = "block";
+    hudChapterEl.textContent = "Chapter: " + chapter.title;
+
+    gamePaused = true; // use this in your game loop
+}
+
+/* Advance to next line or end cutscene */
+function advanceStory() {
+    if (!currentStoryChapter) return;
+
+    const chapter = storyChapters[currentStoryChapter];
+    currentStoryIndex++;
+
+    if (currentStoryIndex >= chapter.lines.length) {
+        // End of chapter
+        storyPanel.style.display = "none";
+        currentStoryChapter = null;
+        currentStoryIndex = 0;
+        gamePaused = false;
+
+        onChapterComplete(chapter);
+        return;
+    }
+
+    storyTextEl.textContent = chapter.lines[currentStoryIndex];
+}
+
+/* Called when a chapter finishes */
+function onChapterComplete(chapter) {
+    // Hook your gameplay here:
+    // unlock abilities, spawn bosses, change maps, etc.
+    /*
+    switch (chapter.title) {
+        case "Prologue — The Night of Ash":
+            // load monastery map, enable basic combat
+            break;
+        case "Chapter 1 — The Path of Bamboo":
+            // spawn Stoneback Boar boss
+            break;
+        // ...
+    }
+    */
+    console.log("Chapter complete:", chapter.title);
+}
+
+/* ============================
+   SIMPLE GAME LOOP STUB
+============================ */
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+    const dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
+    if (!gamePaused) {
+        updateGame(dt);
+    }
+    renderGame();
+
+    requestAnimationFrame(gameLoop);
+}
+
+function updateGame(dt) {
+    // Your movement, combat, enemies, etc.
+}
+
+function renderGame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Placeholder background
+    ctx.fillStyle = "#101018";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Placeholder player
+    ctx.fillStyle = "#4caf50";
+    ctx.fillRect(canvas.width / 2 - 15, canvas.height / 2 - 15, 30, 30);
+}
+
+/* ============================
+   INITIALIZE
+============================ */
+
+// Start with the prologue cutscene
+startStoryChapter("prologue");
+
+// Start loop
+requestAnimationFrame(gameLoop);

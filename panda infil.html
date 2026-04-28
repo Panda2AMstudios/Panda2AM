@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Panda Infiltration</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .game-container {
+      background: #1b1b1b;
+      border-radius: 12px;
+      padding: 20px;
+      width: 360px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.6);
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 0;
+    }
+
+    .status {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .stage-box {
+      border-radius: 10px;
+      background: #222;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 16px;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .btn {
+      background: #2ecc71;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: #111;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 4px 0;
+      width: 100%;
+    }
+
+    .btn:disabled {
+      background: #555;
+      cursor: default;
+    }
+
+    .btn-secondary {
+      background: #3498db;
+      color: #fff;
+    }
+
+    .message {
+      font-size: 14px;
+      min-height: 20px;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .reward {
+      color: #f1c40f;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1>Panda Infiltration</h1>
+
+    <div class="status">
+      <div>Stage: <span id="stageDisplay">0</span> / 20</div>
+      <div>Coins: <span id="coinDisplay">0</span></div>
+    </div>
+
+    <div class="stage-box" id="stageBox">
+      <div id="stageText">Press "Start Mission" to begin.</div>
+    </div>
+
+    <button class="btn" id="startBtn">Start Mission</button>
+    <button class="btn btn-secondary" id="actionBtn" disabled>Complete Stage</button>
+
+    <div class="message" id="message"></div>
+  </div>
+
+  <script>
+    // -------------------------------
+    // 1. Simple local "account" model
+    // -------------------------------
+    // Replace this with your real user system if you already have one.
+    const userData = {
+      pandaCoins: 0
+    };
+
+    function loadUserData() {
+      const saved = localStorage.getItem('pandaUserData');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (typeof parsed.pandaCoins === 'number') {
+            userData.pandaCoins = parsed.pandaCoins;
+          }
+        } catch (e) {
+          console.warn('Failed to parse user data:', e);
+        }
+      }
+      updateCoinDisplay();
+    }
+
+    function saveUserData() {
+      localStorage.setItem('pandaUserData', JSON.stringify(userData));
+    }
+
+    function updateCoinDisplay() {
+      document.getElementById('coinDisplay').textContent = userData.pandaCoins;
+    }
+
+    // ---------------------------------
+    // 2. Award coins to the player's account
+    // ---------------------------------
+    function awardPandaCoins(amount) {
+      // OPTION A: Local storage (demo)
+      userData.pandaCoins += amount;
+      saveUserData();
+      updateCoinDisplay();
+
+      // OPTION B: Real backend (example)
+      // fetch('/api/award-coins', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ amount: amount })
+      // }).then(res => res.json())
+      //   .then(data => {
+      //     console.log('Server confirmed coin award:', data);
+      //   })
+      //   .catch(err => console.error('Error awarding coins:', err));
+    }
+
+    // -------------------------------
+    // 3. Infiltration game logic
+    // -------------------------------
+    const TOTAL_STAGES = 20;
+    let currentStage = 0;
+    let missionActive = false;
+
+    const stageDisplay = document.getElementById('stageDisplay');
+    const stageText = document.getElementById('stageText');
+    const stageBox = document.getElementById('stageBox');
+    const startBtn = document.getElementById('startBtn');
+    const actionBtn = document.getElementById('actionBtn');
+    const messageEl = document.getElementById('message');
+
+    function resetMission() {
+      missionActive = false;
+      currentStage = 0;
+      stageDisplay.textContent = currentStage;
+      stageText.textContent = 'Press "Start Mission" to begin.';
+      messageEl.textContent = '';
+      actionBtn.disabled = true;
+      startBtn.disabled = false;
+    }
+
+    function startMission() {
+      missionActive = true;
+      currentStage = 1;
+      stageDisplay.textContent = currentStage;
+      messageEl.textContent = '';
+      startBtn.disabled = true;
+      actionBtn.disabled = false;
+      updateStageText();
+    }
+
+    function updateStageText() {
+      if (!missionActive) return;
+
+      // Here you can change the description per stage if you want.
+      stageText.textContent = `Stage ${currentStage}: Complete the objective to advance.`;
+    }
+
+    function failMission(reason) {
+      missionActive = false;
+      actionBtn.disabled = true;
+      startBtn.disabled = false;
+      messageEl.textContent = `Mission failed: ${reason}. Try again.`;
+      stageText.textContent = 'Mission failed.';
+    }
+
+    function completeStage() {
+      if (!missionActive) return;
+
+      // Here you could add real challenge logic.
+      // For now, we just auto-complete when the button is pressed.
+
+      if (currentStage < TOTAL_STAGES) {
+        currentStage++;
+        stageDisplay.textContent = currentStage;
+        updateStageText();
+      } else {
+        // Player has completed all 20 stages
+        missionActive = false;
+        actionBtn.disabled = true;
+        startBtn.disabled = false;
+        stageText.textContent = 'Mission complete! You infiltrated all 20 stages.';
+        messageEl.innerHTML = `You earned <span class="reward">20 PandaCoins</span>!`;
+
+        // Transfer coins to their account
+        awardPandaCoins(20);
+      }
+    }
+
+    // -------------------------------
+    // 4. Event listeners
+    // -------------------------------
+    startBtn.addEventListener('click', startMission);
+    actionBtn.addEventListener('click', completeStage);
+
+    // Initialize
+    loadUserData();
+    resetMission();
+  </script>
+</body>
+</html>

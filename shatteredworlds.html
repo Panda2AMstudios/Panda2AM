@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Shattered Worlds</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #050608;
+      --panel: #11141b;
+      --panel-alt: #181c26;
+      --accent: #4fd1c5;
+      --accent-soft: #2c7a7b;
+      --danger: #e53e3e;
+      --text: #e2e8f0;
+      --muted: #718096;
+      --rune: #63b3ed;
+      --border: #2d3748;
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bronze: #b7791f;
+      --silver: #cbd5e0;
+      --gold: #f6e05e;
+      --platinum: #bee3f8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+      color: var(--text);
+      font-family: var(--font-main);
+    }
+
+    #game-root {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #intro-overlay {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 9999;
+      opacity: 1;
+      transition: opacity 1.5s ease;
+      pointer-events: none;
+    }
+    #intro-text {
+      font-size: 32px;
+      color: var(--text);
+      opacity: 0;
+      transition: opacity 1.5s ease;
+      text-shadow: 0 0 12px rgba(255,255,255,0.4);
+    }
+
+    #top-ui {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px;
+      background: linear-gradient(90deg, #11141b, #181c26);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    #title {
+      font-size: 18px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .rune {
+      color: var(--rune);
+      text-shadow: 0 0 8px rgba(99,179,237,0.7);
+    }
+    #world-label {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    #quest-text {
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    #inventory-button {
+      position: absolute;
+      top: 52px;
+      left: 8px;
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: radial-gradient(circle at 30% 20%, #1a202c 0, #050608 70%);
+      color: var(--rune);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(99,179,237,0.4);
+      z-index: 9;
+    }
+
+    #inventory-panel {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -320px;
+      width: 320px;
+      max-width: 320px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      box-shadow: 8px 0 20px rgba(0,0,0,0.7);
+      padding: 56px 8px 8px 8px;
+      transition: transform 0.25s ease-out;
+      transform: translateX(0);
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+    }
+    #inventory-panel.open {
+      transform: translateX(320px);
+    }
+
+    #inv-title {
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    #inv-hero-name {
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    #inv-stats {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      padding: 6px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 4px;
+    }
+
+    #inv-gear {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      padding: 6px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+
+    .gear-slot {
+      border: 1px solid #2d3748;
+      background: #0f172a;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      color: var(--muted);
+    }
+    .gear-slot-label {
+      position: absolute;
+      bottom: 2px;
+      left: 2px;
+      font-size: 9px;
+      color: #4a5568;
+    }
+    .gear-slot-rare {
+      border-color: #4fd1c5;
+      box-shadow: 0 0 8px rgba(79,209,197,0.4);
+    }
+
+    #log-panel {
+      flex: 1;
+      background: #050608;
+      border: 1px solid var(--border);
+      padding: 6px;
+      overflow-y: auto;
+      font-size: 11px;
+    }
+
+    #currency-panel {
+      background: #0a0d14;
+      border: 1px solid var(--border);
+      padding: 10px;
+      margin-top: 4px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      box-shadow: 0 0 20px rgba(99,179,237,0.4);
+    }
+
+    .cur {
+      margin: 0 6px;
+      text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+    }
+
+    .bronze { color: var(--bronze); }
+    .silver { color: var(--silver); }
+    .gold { color: var(--gold); }
+    .platinum { color: var(--platinum); }
+
+    #canvas {
+      position: absolute;
+      top: 48px;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 48px);
+      background: #000;
+      z-index: 1;
+    }
+  </style>
+</head>
+
+
+<a href="index.html" class="game-button">Return to Home Page</a>
+
+<body>
+<div id="game-root">
+  <div id="intro-overlay">
+    <div id="intro-text"></div>
+  </div>
+
+  <div id="top-ui">
+    <div id="title"><span class="rune">SHATTERED</span> WORLDS</div>
+    <div id="world-label">
+      <div>World <span id="world-num">1</span> · Difficulty <span id="world-diff">1.0</span></div>
+      <div id="quest-text">Quest: Reach the edge of this world.</div>
+    </div>
+  </div>
+
+  <div id="inventory-button">ᚠ</div>
+
+  <div id="inventory-panel">
+    <div id="inv-title">Inventory</div>
+    <div id="inv-hero-name">Young Traveler – Traveler</div>
+
+    <div id="inv-stats">
+      <div>STR: <span id="stat-str">5</span></div>
+      <div>AGI: <span id="stat-agi">5</span></div>
+      <div>MAG: <span id="stat-mag">3</span></div>
+      <div>DEF: <span id="stat-def">2</span></div>
+      <div>CRIT: <span id="stat-crit">5%</span></div>
+      <div>DODGE: <span id="stat-dodge">3%</span></div>
+    </div>
+
+    <div id="inv-gear">
+      <div class="gear-slot" data-slot="head"><span class="gear-slot-label">Head</span></div>
+      <div class="gear-slot" data-slot="chest"><span class="gear-slot-label">Chest</span></div>
+      <div class="gear-slot" data-slot="hands"><span class="gear-slot-label">Hands</span></div>
+      <div class="gear-slot" data-slot="legs"><span class="gear-slot-label">Legs</span></div>
+      <div class="gear-slot" data-slot="boots"><span class="gear-slot-label">Boots</span></div>
+      <div class="gear-slot" data-slot="cloak"><span class="gear-slot-label">Cloak</span></div>
+      <div class="gear-slot" data-slot="weapon"><span class="gear-slot-label">Weapon</span></div>
+      <div class="gear-slot" data-slot="offhand"><span class="gear-slot-label">Off</span></div>
+      <div class="gear-slot" data-slot="accessory"><span class="gear-slot-label">Acc</span></div>
+    </div>
+
+    <div id="log-panel"></div>
+
+    <div id="currency-panel">
+      <span class="cur bronze" id="cur-bronze">Bronze 0</span>
+      <span class="cur silver" id="cur-silver">Silver 0</span>
+      <span class="cur gold" id="cur-gold">Gold 0</span>
+      <span class="cur platinum" id="cur-platinum">Platinum 0</span>
+    </div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+</div>
+
+<script>
+const introOverlay = document.getElementById("intro-overlay");
+const introText = document.getElementById("intro-text");
+
+function playIntroSequence(startGameCallback) {
+  introText.style.opacity = 0;
+
+  setTimeout(() => {
+    introText.textContent = "Panda2AMStudios presents...";
+    introText.style.opacity = 1;
+  }, 200);
+
+  setTimeout(() => {
+    introText.style.opacity = 0;
+  }, 2500);
+
+  setTimeout(() => {
+    introText.textContent = "Shattered Worlds";
+    introText.style.opacity = 1;
+  }, 4000);
+
+  setTimeout(() => {
+    introText.style.opacity = 0;
+  }, 6500);
+
+  setTimeout(() => {
+    introOverlay.style.opacity = 0;
+  }, 8000);
+
+  setTimeout(() => {
+    introOverlay.style.display = "none";
+    startGameCallback();
+  }, 9500);
+}
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas() {
+  canvas.width = document.documentElement.clientWidth;
+  canvas.height = document.documentElement.clientHeight - 48;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+const worldNumEl = document.getElementById("world-num");
+const worldDiffEl = document.getElementById("world-diff");
+const invButton = document.getElementById("inventory-button");
+const invPanel = document.getElementById("inventory-panel");
+const logPanel = document.getElementById("log-panel");
+
+const statEls = {
+  str: document.getElementById("stat-str"),
+  agi: document.getElementById("stat-agi"),
+  mag: document.getElementById("stat-mag"),
+  def: document.getElementById("stat-def"),
+  crit: document.getElementById("stat-crit"),
+  dodge: document.getElementById("stat-dodge")
+};
+
+const currencyEls = {
+  bronze: document.getElementById("cur-bronze"),
+  silver: document.getElementById("cur-silver"),
+  gold: document.getElementById("cur-gold"),
+  platinum: document.getElementById("cur-platinum")
+};
+
+const gearSlots = Array.from(document.querySelectorAll(".gear-slot"));
+
+const TILE_SIZE = 32;
+// Make map larger than screen to avoid black edges
+const MAP_WIDTH = 80;
+const MAP_HEIGHT = 60;
+
+const TILE = { GRASS: 0, TREE: 1, ROCK: 2 };
+const COLORS = {
+  [TILE.GRASS]: "#1f3d2b",
+  [TILE.TREE]: "#0b2614",
+  [TILE.ROCK]: "#3b3b3b"
+};
+
+const state = {
+  world: 1,
+  difficulty: 1.0,
+
+  hero: {
+    x: MAP_WIDTH * TILE_SIZE / 2,
+    y: MAP_HEIGHT * TILE_SIZE / 2,
+    speed: 140,
+    dir: "down",
+    sprite: { w: 24, h: 28 },
+    stats: { str: 5, agi: 5, mag: 3, def: 2, crit: 5, dodge: 3 },
+    gear: {
+      head: null, chest: null, hands: null, legs: null,
+      boots: null, cloak: null, weapon: null, offhand: null, accessory: null
+    }
+  },
+
+  panda: {
+    x: MAP_WIDTH * TILE_SIZE / 2 - 40,
+    y: MAP_HEIGHT * TILE_SIZE / 2,
+    speed: 110,
+    rollTimer: 0,
+    rolling: false,
+    rollDuration: 0.5,
+    evoStage: 1
+  },
+
+  currency: {
+    bronze: 0,
+    silver: 0,
+    gold: 0,
+    platinum: 0
+  },
+
+  map: [],
+  camera: { x: 0, y: 0 },
+  input: { up: false, down: false, left: false, right: false },
+
+  lastTime: 0
+};
+
+function log(msg) {
+  const line = document.createElement("div");
+  line.textContent = msg;
+  logPanel.appendChild(line);
+  logPanel.scrollTop = logPanel.scrollHeight;
+}
+
+function updateStatsUI() {
+  statEls.str.textContent = state.hero.stats.str;
+  statEls.agi.textContent = state.hero.stats.agi;
+  statEls.mag.textContent = state.hero.stats.mag;
+  statEls.def.textContent = state.hero.stats.def;
+  statEls.crit.textContent = state.hero.stats.crit + "%";
+  statEls.dodge.textContent = state.hero.stats.dodge + "%";
+}
+
+function updateGearUI() {
+  gearSlots.forEach(slot => {
+    const key = slot.dataset.slot;
+    const item = state.hero.gear[key];
+
+    slot.classList.remove("gear-slot-rare");
+    slot.innerHTML = `<span class="gear-slot-label">${key}</span>`;
+
+    if (item) {
+      const div = document.createElement("div");
+      div.style.fontSize = "10px";
+      div.textContent = item.name;
+      slot.appendChild(div);
+
+      if (["rare","epic","legendary"].includes(item.rarity)) {
+        slot.classList.add("gear-slot-rare");
+      }
+    }
+  });
+}
+
+function updateCurrencyUI() {
+  currencyEls.bronze.textContent = `Bronze ${state.currency.bronze}`;
+  currencyEls.silver.textContent = `Silver ${state.currency.silver}`;
+  currencyEls.gold.textContent = `Gold ${state.currency.gold}`;
+  currencyEls.platinum.textContent = `Platinum ${state.currency.platinum}`;
+}
+
+function equipDemoGear() {
+  state.hero.gear.chest = { name: "Leather Jerkin", rarity: "common", def: 2 };
+  state.hero.gear.weapon = { name: "Rusty Knife", rarity: "common", str: 1 };
+
+  state.hero.stats.def += 2;
+  state.hero.stats.str += 1;
+
+  updateStatsUI();
+  updateGearUI();
+  log("Equipped Leather Jerkin and Rusty Knife.");
+}
+
+function generateMap() {
+  state.map = [];
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    const row = [];
+    for (let x = 0; x < MAP_WIDTH; x++) {
+      let tile = TILE.GRASS;
+      if (Math.random() < 0.08) tile = TILE.TREE;
+      else if (Math.random() < 0.04) tile = TILE.ROCK;
+      row.push(tile);
+    }
+    state.map.push(row);
+  }
+}
+
+function isBlocked(tx, ty) {
+  if (tx < 0 || ty < 0 || tx >= MAP_WIDTH || ty >= MAP_HEIGHT) return true;
+  const t = state.map[ty][tx];
+  return t === TILE.TREE || t === TILE.ROCK;
+}
+
+function updateCamera() {
+  const halfW = canvas.width / 2;
+  const halfH = canvas.height / 2;
+
+  state.camera.x = state.hero.x - halfW;
+  state.camera.y = state.hero.y - halfH;
+
+  const mapW = MAP_WIDTH * TILE_SIZE;
+  const mapH = MAP_HEIGHT * TILE_SIZE;
+
+  const maxX = Math.max(0, mapW - canvas.width);
+  const maxY = Math.max(0, mapH - canvas.height);
+
+  state.camera.x = Math.min(Math.max(0, state.camera.x), maxX);
+  state.camera.y = Math.min(Math.max(0, state.camera.y), maxY);
+}
+
+function updateHero(dt) {
+  let dx = 0, dy = 0;
+  if (state.input.up) { dy -= 1; state.hero.dir = "up"; }
+  if (state.input.down) { dy += 1; state.hero.dir = "down"; }
+  if (state.input.left) { dx -= 1; state.hero.dir = "left"; }
+  if (state.input.right) { dx += 1; state.hero.dir = "right"; }
+
+  if (dx !== 0 || dy !== 0) {
+    const len = Math.hypot(dx, dy);
+    dx /= len; dy /= len;
+    const speed = state.hero.speed;
+    let newX = state.hero.x + dx * speed * dt;
+    let newY = state.hero.y + dy * speed * dt;
+    const tx = Math.floor(newX / TILE_SIZE);
+    const ty = Math.floor(newY / TILE_SIZE);
+    if (!isBlocked(tx, ty)) {
+      state.hero.x = newX;
+      state.hero.y = newY;
+    }
+  }
+}
+
+function updatePanda(dt) {
+  const targetX = state.hero.x - 24;
+  const targetY = state.hero.y + 8;
+  const dx = targetX - state.panda.x;
+  const dy = targetY - state.panda.y;
+  const dist = Math.hypot(dx, dy);
+
+  state.panda.rollTimer -= dt;
+  if (state.panda.rollTimer <= 0 && !state.panda.rolling && dist > 20) {
+    if (Math.random() < 0.3) {
+      state.panda.rolling = true;
+      state.panda.rollTimer = 6 + Math.random() * 6;
+    } else {
+      state.panda.rollTimer = 3 + Math.random() * 4;
+    }
+  }
+
+  if (state.panda.rolling) {
+    const rollSpeed = state.panda.speed * 1.8;
+    if (dist > 4) {
+      const nx = dx / dist;
+      const ny = dy / dist;
+      state.panda.x += nx * rollSpeed * dt;
+      state.panda.y += ny * rollSpeed * dt;
+    }
+    state.panda.rollDuration -= dt;
+    if (state.panda.rollDuration <= 0) {
+      state.panda.rolling = false;
+      state.panda.rollDuration = 0.5;
+    }
+  } else {
+    if (dist > 8) {
+      const nx = dx / dist;
+      const ny = dy / dist;
+      const speed = state.panda.speed;
+      state.panda.x += nx * speed * dt;
+      state.panda.y += ny * speed * dt;
+    }
+  }
+}
+
+function drawMap() {
+  const startX = Math.floor(state.camera.x / TILE_SIZE);
+  const startY = Math.floor(state.camera.y / TILE_SIZE);
+  const endX = Math.ceil((state.camera.x + canvas.width) / TILE_SIZE);
+  const endY = Math.ceil((state.camera.y + canvas.height) / TILE_SIZE);
+
+  for (let y = startY; y < endY; y++) {
+    for (let x = startX; x < endX; x++) {
+      if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) continue;
+      const tile = state.map[y][x];
+      ctx.fillStyle = COLORS[tile];
+      ctx.fillRect(
+        x * TILE_SIZE - state.camera.x,
+        y * TILE_SIZE - state.camera.y,
+        TILE_SIZE,
+        TILE_SIZE
+      );
+    }
+  }
+}
+
+function drawHero() {
+  const { x, y, sprite } = state.hero;
+  const sx = x - state.camera.x;
+  const sy = y - state.camera.y;
+
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  ctx.fillStyle = "#1a202c";
+  ctx.fillRect(-sprite.w/2, -sprite.h/2, sprite.w, sprite.h);
+
+  ctx.fillStyle = "#f7fafc";
+  ctx.fillRect(-sprite.w/2 + 4, -sprite.h/2 + 2, sprite.w - 8, 10);
+
+  ctx.fillStyle = "#4a5568";
+  ctx.fillRect(-sprite.w/2 + 6, -sprite.h/2 + 12, sprite.w - 12, 10);
+
+  ctx.fillStyle = "#2d3748";
+  ctx.fillRect(-sprite.w/2 + 6, -sprite.h/2 + 22, sprite.w - 12, 6);
+
+  ctx.fillStyle = "#e2e8f0";
+  ctx.fillRect(-sprite.w/2 + 6, -sprite.h/2 + 4, 4, 4);
+  ctx.fillRect(sprite.w/2 - 10, -sprite.h/2 + 4, 4, 4);
+
+  ctx.restore();
+}
+
+function drawPanda() {
+  const { x, y } = state.panda;
+  const sx = x - state.camera.x;
+  const sy = y - state.camera.y;
+
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  const bodyW = 22;
+  const bodyH = 18;
+  const headW = 18;
+  const headH = 14;
+
+  if (state.panda.rolling) {
+    ctx.rotate(performance.now() / 80 % (Math.PI * 2));
+  }
+
+  ctx.fillStyle = "#f7fafc";
+  ctx.fillRect(-bodyW/2, -bodyH/2 + 6, bodyW, bodyH);
+  ctx.fillStyle = "#2d3748";
+  ctx.fillRect(-bodyW/2 + 2, -bodyH/2 + 8, bodyW - 4, bodyH - 6);
+
+  ctx.fillStyle = "#f7fafc";
+  ctx.fillRect(-headW/2, -headH/2, headW, headH);
+
+  ctx.fillStyle = "#2d3748";
+  ctx.fillRect(-headW/2 + 2, -headH/2 + 2, 4, 4);
+  ctx.fillRect(headW/2 - 6, -headH/2 + 2, 4, 4);
+
+  ctx.fillRect(-headW/2 + 2, -headH/2 - 4, 6, 4);
+  ctx.fillRect(headW/2 - 8, -headH/2 - 4, 6, 4);
+
+  ctx.font = "12px sans-serif";
+  ctx.fillStyle = "white";
+  ctx.textAlign = "center";
+  ctx.fillText("Panda", 0, -headH/2 - 8);
+
+  ctx.restore();
+}
+
+function draw() {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, canvas.width, canvas.height);
+  ctx.clip();
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawMap();
+  drawHero();
+  drawPanda();
+
+  ctx.restore();
+}
+
+function nextWorld() {
+  state.world++;
+  state.difficulty += 0.25;
+  worldNumEl.textContent = state.world;
+  worldDiffEl.textContent = state.difficulty.toFixed(1);
+
+  generateMap();
+
+  state.hero.x = MAP_WIDTH * TILE_SIZE / 2;
+  state.hero.y = MAP_HEIGHT * TILE_SIZE / 2;
+  state.panda.x = state.hero.x - 40;
+  state.panda.y = state.hero.y;
+
+  log(`Entered World ${state.world}.`);
+}
+
+function checkWorldEdge() {
+  const px = state.hero.x;
+  const py = state.hero.y;
+
+  if (px < 16 || py < 16 ||
+      px > MAP_WIDTH * TILE_SIZE - 16 ||
+      py > MAP_HEIGHT * TILE_SIZE - 16) {
+    nextWorld();
+  }
+}
+
+invButton.addEventListener("click", () => {
+  invPanel.classList.toggle("open");
+});
+
+window.addEventListener("keydown", e => {
+  if (e.key === "w") state.input.up = true;
+  if (e.key === "s") state.input.down = true;
+  if (e.key === "a") state.input.left = true;
+  if (e.key === "d") state.input.right = true;
+});
+window.addEventListener("keyup", e => {
+  if (e.key === "w") state.input.up = false;
+  if (e.key === "s") state.input.down = false;
+  if (e.key === "a") state.input.left = false;
+  if (e.key === "d") state.input.right = false;
+});
+
+function loop(timestamp) {
+  const dt = (timestamp - state.lastTime) / 1000;
+  state.lastTime = timestamp;
+
+  updateHero(dt);
+  updatePanda(dt);
+  updateCamera();
+  checkWorldEdge();
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+function startGame() {
+  generateMap();
+  updateStatsUI();
+  updateGearUI();
+  updateCurrencyUI();
+  equipDemoGear();
+  state.lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+window.onload = () => {
+  playIntroSequence(startGame);
+};
+</script>
+</body>
+</html>

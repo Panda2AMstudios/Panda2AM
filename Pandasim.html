@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Panda Swarm Prototype</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #c7f0d8;
+            font-family: Arial, sans-serif;
+        }
+
+        #gameCanvas {
+            background: #aee6b8;
+            display: block;
+            margin: 0 auto;
+        }
+
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #222;
+            font-size: 18px;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        #hungerBar {
+            width: 220px;
+            height: 20px;
+            background: #555;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+            box-shadow: 0 0 4px rgba(0,0,0,0.4);
+        }
+
+        #hungerFill {
+            width: 100%;
+            height: 100%;
+            background: #ffcc66;
+            transition: width 0.15s;
+        }
+
+        #returnHome {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 14px;
+            background: #ffffffdd;
+            border: 2px solid #4a7c59;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #2f4f3a;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+        }
+
+        #returnHome:hover {
+            background: #e8fff0;
+        }
+    </style>
+</head>
+<body>
+
+<button id="returnHome" onclick="window.location.href='index.html'">
+    Return Home
+</button>
+
+<canvas id="gameCanvas" width="900" height="600"></canvas>
+
+<div id="hud">
+    Essence: <span id="essenceCount">0</span>
+    <div id="hungerBar">
+        <div id="hungerFill"></div>
+    </div>
+</div>
+
+<script>
+// ====== INPUT ======
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let keys = {};
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+// ====== PLAYER & PANDAS ======
+const player = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    radius: 18,
+    speed: 2.4,
+    color: "#ffffff",
+};
+
+const followerPanda = {
+    x: player.x + 40,
+    y: player.y + 40,
+    radius: 14,
+    followDistance: 35,
+    speed: 2.1,
+};
+
+// ====== HUNGER & ESSENCE ======
+let hunger = 100;        // 0–100
+let essence = 0;
+const hungerDrainRate = 0.015; // per frame
+
+const hungerFillEl = document.getElementById("hungerFill");
+const essenceEl = document.getElementById("essenceCount");
+
+// ====== WORLD OBJECTS ======
+const bambooPatches = [];
+const enemies = [];
+
+// Spawn some bamboo
+for (let i = 0; i < 20; i++) {
+    bambooPatches.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: 10 + Math.random() * 6,
+        harvested: false
+    });
+}
+
+// Simple wandering enemy
+for (let i = 0; i < 3; i++) {
+    enemies.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: 16,
+        vx: (Math.random() * 2 - 1) * 0.7,
+        vy: (Math.random() * 2 - 1) * 0.7,
+        hp: 3
+    });
+}
+
+// ====== UTILS ======
+function dist(a, b) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx*dx + dy*dy);
+}
+
+function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+}
+
+// ====== MOVEMENT ======
+function updatePlayer() {
+    let moveX = 0;
+    let moveY = 0;
+
+    if (keys["w"] || keys["arrowup"]) moveY -= 1;
+    if (keys["s"] || keys["arrowdown"]) moveY += 1;
+    if (keys["a"] || keys["arrowleft"]) moveX -= 1;
+    if (keys["d"] || keys["arrowright"]) moveX += 1;
+
+    let len = Math.hypot(moveX, moveY);
+    if (len > 0) {
+        moveX /= len;
+        moveY /= len;
+    }
+
+    // Slow down when hunger is low
+    const hungerFactor = hunger > 30 ? 1 : (0.4 + hunger / 75);
+    const speed = player.speed * hungerFactor;
+
+    player.x += moveX * speed;
+    player.y += moveY * speed;
+
+    // Keep in bounds
+    player.x = clamp(player.x, player.radius, canvas.width - player.radius);
+    player.y = clamp(player.y, player.radius, canvas.height - player.radius);
+}
+
+function updateFollower() {
+    const dx = player.x - followerPanda.x;
+    const dy = player.y - followerPanda.y;
+    const d = Math.sqrt(dx*dx + dy*dy);
+
+    if (d > followerPanda.followDistance) {
+        const nx = dx / d;
+        const ny = dy / d;
+        followerPanda.x += nx * followerPanda.speed;
+        followerPanda.y += ny * followerPanda.speed;
+    }
+}
+
+// ====== HUNGER & ESSENCE UPDATE ======
+function updateHunger() {
+    hunger -= hungerDrainRate;
+    hunger = clamp(hunger, 0, 100);
+
+    const percent = hunger;
+    hungerFillEl.style.width = percent + "%";
+
+    // Color shift based on hunger
+    if (percent > 60) {
+        hungerFillEl.style.background = "#ffcc66";
+    } else if (percent > 30) {
+        hungerFillEl.style.background = "#ff9966";
+    } else {
+        hungerFillEl.style.background = "#ff6666";
+    }
+}
+
+function addEssence(amount) {
+    essence += amount;
+    essenceEl.textContent = essence;
+}
+
+// ====== BAMBOO & ENEMY INTERACTION ======
+
+// (CONTINUE IN PART 2 BELOW)
+
+function updateBamboo() {
+    for (let b of bambooPatches) {
+        if (b.harvested) continue;
+
+        // If follower panda is close, harvest it
+        if (dist(followerPanda, b) < b.radius + 20) {
+            b.harvested = true;
+            addEssence(1);
+        }
+    }
+}
+
+function updateEnemies() {
+    for (let e of enemies) {
+        e.x += e.vx;
+        e.y += e.vy;
+
+        // Bounce off walls
+        if (e.x < e.radius || e.x > canvas.width - e.radius) e.vx *= -1;
+        if (e.y < e.radius || e.y > canvas.height - e.radius) e.vy *= -1;
+
+        // Panda auto-attacks if close
+        if (dist(followerPanda, e) < e.radius + 25) {
+            e.hp -= 0.03;
+            if (e.hp <= 0) {
+                e.x = Math.random() * canvas.width;
+                e.y = Math.random() * canvas.height;
+                e.hp = 3;
+                addEssence(3);
+            }
+        }
+    }
+}
+
+// ====== RENDERING ======
+function drawPlayer() {
+    // Body
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(player.x - 6, player.y - 4, 3, 0, Math.PI * 2);
+    ctx.arc(player.x + 6, player.y - 4, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cute blush
+    ctx.fillStyle = "#ff9999";
+    ctx.beginPath();
+    ctx.arc(player.x - 8, player.y + 4, 3, 0, Math.PI * 2);
+    ctx.arc(player.x + 8, player.y + 4, 3, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawFollower() {
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(followerPanda.x, followerPanda.y, followerPanda.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(followerPanda.x - 4, followerPanda.y - 3, 2, 0, Math.PI * 2);
+    ctx.arc(followerPanda.x + 4, followerPanda.y - 3, 2, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawBamboo() {
+    for (let b of bambooPatches) {
+        if (b.harvested) continue;
+
+        ctx.fillStyle = "#4caf50";
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawEnemies() {
+    for (let e of enemies) {
+        ctx.fillStyle = "#aa4444";
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // HP bar
+        ctx.fillStyle = "#000";
+        ctx.fillRect(e.x - 12, e.y - e.radius - 10, 24, 4);
+
+        ctx.fillStyle = "#ff6666";
+        ctx.fillRect(e.x - 12, e.y - e.radius - 10, 24 * (e.hp / 3), 4);
+    }
+}
+
+// ====== MAIN LOOP ======
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    updatePlayer();
+    updateFollower();
+    updateHunger();
+    updateBamboo();
+    updateEnemies();
+
+    drawBamboo();
+    drawEnemies();
+    drawPlayer();
+    drawFollower();
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>

@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PANDACOIN.EXE</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    background: #000;
+  }
+
+  /* -------------------------
+     SETUP WIZARD
+  --------------------------*/
+  #setup-screen {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(#1b4f8f, #0a1a2f);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #setup-box {
+    background: rgba(255,255,255,0.1);
+    padding: 30px;
+    border-radius: 10px;
+    width: 420px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0,0,0,0.4);
+  }
+
+  #setup-title {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+
+  #setup-sub {
+    font-size: 14px;
+    opacity: 0.8;
+    margin-bottom: 20px;
+  }
+
+  .setup-btn {
+    padding: 10px 30px;
+    font-size: 16px;
+    border-radius: 4px;
+    border: 1px solid #fff;
+    background: #1b4f8f;
+    color: #fff;
+    cursor: pointer;
+    margin-top: 20px;
+  }
+
+  .setup-btn:hover {
+    background: #2b6fbf;
+  }
+
+  #setup-input {
+    width: 80%;
+    padding: 8px;
+    border-radius: 4px;
+    border: none;
+    margin-top: 10px;
+    font-size: 16px;
+  }
+
+  #setup-progress {
+    width: 80%;
+    height: 20px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    margin-top: 20px;
+    overflow: hidden;
+    display: none;
+  }
+
+  #setup-bar {
+    height: 100%;
+    width: 0%;
+    background: #6fd36f;
+    transition: width 0.3s;
+  }
+
+  /* -------------------------
+     BOOT ANIMATION
+  --------------------------*/
+  #boot-screen {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    color: #fff;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  #boot-logo {
+    font-size: 60px;
+    margin-bottom: 20px;
+  }
+
+  /* -------------------------
+     DESKTOP
+  --------------------------*/
+  #desktop-wrapper {
+    position: absolute;
+    inset: 0;
+    display: none;
+  }
+
+  #desktop {
+    position: absolute;
+    inset: 0 0 40px 0;
+    background: linear-gradient(#0a6bb5, #0b4f86);
+  }
+
+  .desktop-icon {
+    position: absolute;
+    width: 80px;
+    text-align: center;
+    color: #fff;
+    font-size: 12px;
+    cursor: default;
+  }
+
+  .desktop-icon .icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 4px;
+    border-radius: 10px;
+    box-shadow: 0 0 4px rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  /* Icons */
+  #icon-junk .icon {
+    background: linear-gradient(#fff, #ddd);
+    border: 2px solid #555;
+  }
+
+  #icon-taskmgr .icon {
+    background: radial-gradient(circle at 30% 30%, #fff, #ffe29f);
+    border: 2px solid #1f4f8f;
+  }
+
+  #icon-challenge .icon {
+    background: linear-gradient(#fff, #ffd1d1);
+    border: 2px solid #b03030;
+  }
+
+  #icon-pandashop .icon {
+    background: linear-gradient(#fff, #ffd1d1);
+    border: 2px solid #b03030;
+  }
+
+  /* Taskbar */
+  #taskbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 40px;
+    background: linear-gradient(#2b2b2b, #1a1a1a);
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    color: #ddd;
+    font-size: 12px;
+  }
+
+  #start-button {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid #0f0f0f;
+    background: radial-gradient(circle at 30% 30%, #d36f6f, #7a1f1f);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 4px #000;
+  }
+
+  #start-button span {
+    font-size: 20px;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  #taskbar-title {
+    margin-left: 10px;
+  }
+
+  #taskbar-right {
+    margin-left: auto;
+  }
+
+  /* Windows */
+  .window {
+    position: absolute;
+    width: 420px;
+    height: 280px;
+    background: #f0f0f0;
+    border: 1px solid #555;
+    box-shadow: 0 0 10px #000;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .window-titlebar {
+    height: 24px;
+    background: linear-gradient(#2b579a, #1f3b6d);
+    color: #fff;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6px;
+    cursor: move;
+  }
+
+  .window-buttons {
+    display: flex;
+    gap: 4px;
+  }
+
+  .window-button {
+    width: 16px;
+    height: 16px;
+    text-align: center;
+    line-height: 14px;
+    border-radius: 2px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #d0d0d0;
+    color: #000;
+  }
+
+  .window-content {
+    flex: 1;
+    padding: 8px;
+    background: #ffffff;
+    font-size: 13px;
+    overflow: auto;
+  }
+
+  /* Popups */
+  .popup {
+    position: absolute;
+    width: 260px;
+    background: #fff;
+    border: 2px solid #b03030;
+    box-shadow: 0 0 10px rgba(0,0,0,0.7);
+    font-size: 12px;
+    z-index: 900;
+  }
+
+  .popup-header {
+    background: #b03030;
+    color: #fff;
+    padding: 4px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .popup-body {
+    padding: 6px;
+    color: #000;
+  }
+
+  .popup-close {
+    cursor: pointer;
+    padding: 0 4px;
+  }
+
+  /* Corruption meter */
+  #corruption-bar {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 160px;
+    height: 12px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+    overflow: hidden;
+    display: none;
+  }
+
+  #corruption-fill {
+    height: 100%;
+    width: 0%;
+    background: #ff4444;
+    transition: width 0.3s;
+  }
+
+  /* Corruption overlay */
+  #corruption-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,0,0,0);
+    pointer-events: none;
+    transition: background 0.5s;
+    z-index: 1500;
+  }
+
+  /* Night TD canvas */
+  #td-canvas {
+    position: absolute;
+    inset: 0 0 40px 0;
+    display: none;
+    background: #05060a;
+    z-index: 800;
+  }
+
+  #td-ui {
+    position: absolute;
+    left: 0; right: 0; bottom: 40px;
+    height: 30px;
+    display: none;
+    z-index: 801;
+    color: #fff;
+    font-family: monospace;
+    font-size: 12px;
+    padding: 4px 8px;
+    background: linear-gradient(#111, #000);
+  }
+
+  #td-ui span { margin-right: 12px; }
+
+  /* End screen */
+  #end-screen {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    color: #f5f5f5;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-family: monospace;
+    z-index: 2000;
+  }
+
+  #end-screen h1 {
+    font-size: 36px;
+    margin-bottom: 10px;
+  }
+
+  #end-screen p {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP WIZARD -->
+<div id="setup-screen">
+  <div id="setup-box">
+    <div id="setup-title">Welcome to PandaOS</div>
+    <div id="setup-sub">Let's get your PC ready.</div>
+    <button class="setup-btn" id="setup-next">Begin Setup</button>
+  </div>
+</div>
+
+<!-- BOOT SCREEN -->
+<div id="boot-screen">
+  <div id="boot-logo">🐼</div>
+  <div>Starting PandaOS…</div>
+</div>
+
+<!-- DESKTOP -->
+<div id="desktop-wrapper">
+  <div id="desktop">
+
+    <!-- Vulnerable mode icons -->
+    <div class="desktop-icon" id="icon-junk" style="left:20px; top:20px;">
+      <div class="icon"></div>
+      <span>Junk Cleaner</span>
+    </div>
+
+    <div class="desktop-icon" id="icon-taskmgr" style="left:20px; top:120px;">
+      <div class="icon"></div>
+      <span>Task Manager</span>
+    </div>
+
+    <div class="desktop-icon" id="icon-challenge" style="left:20px; top:220px;">
+      <div class="icon"></div>
+      <span>Daily Challenge</span>
+    </div>
+
+    <div class="desktop-icon" id="icon-pandashop" style="left:120px; top:20px;">
+      <div class="icon"></div>
+      <span>Pandashop</span>
+    </div>
+
+  </div>
+
+  <div id="taskbar">
+    <div id="start-button"><span>🐼</span></div>
+    <div id="taskbar-title">PandaOS (Unprotected)</div>
+    <div id="taskbar-right">
+      <span id="taskbar-day">Setup</span> ·
+      <span id="taskbar-phase">Vulnerable</span> ·
+      <span id="taskbar-coins">0 PC</span>
+    </div>
+  </div>
+
+  <div id="corruption-bar"><div id="corruption-fill"></div></div>
+  <div id="corruption-overlay"></div>
+
+  <canvas id="td-canvas"></canvas>
+  <div id="td-ui">
+    <span id="td-timer">Night: 60s</span>
+    <span id="td-coins">PC: 0</span>
+    <span id="td-lives">Core HP: 10</span>
+  </div>
+
+  <div id="end-screen">
+    <h1>VIRUS DECIMATED</h1>
+    <p>System integrity restored.</p>
+  </div>
+</div>
+
+<script>
+/* ---------------------------------------------------
+   JAVASCRIPT STARTS HERE
+----------------------------------------------------*/
+
+let setupStep = 0;
+let username = "";
+let coins = 0;
+let corruption = 0;
+let antivirusInstalled = false;
+let day = 0;
+let phase = "vulnerable"; // vulnerable → day → night → crash
+let canPlaceTower = true;
+
+/* DOM refs */
+const setupScreen = document.getElementById("setup-screen");
+const setupBox = document.getElementById("setup-box");
+const setupNext = document.getElementById("setup-next");
+
+const bootScreen = document.getElementById("boot-screen");
+const desktopWrapper = document.getElementById("desktop-wrapper");
+
+const dayEl = document.getElementById("taskbar-day");
+const phaseEl = document.getElementById("taskbar-phase");
+const coinsEl = document.getElementById("taskbar-coins");
+const corruptionBar = document.getElementById("corruption-bar");
+const corruptionFill = document.getElementById("corruption-fill");
+
+function updateHUD() {
+  coinsEl.textContent = `${coins} PC`;
+  corruptionFill.style.width = `${corruption}%`;
+
+  const overlay = document.getElementById("corruption-overlay");
+
+  // 60% — screen flicker
+  if (corruption >= 60 && corruption < 75) {
+    if (Math.random() < 0.05) {
+      document.body.style.filter = "brightness(0.6)";
+      setTimeout(() => document.body.style.filter = "brightness(1)", 150);
+    }
+  }
+
+  // 75% — red tint
+  if (corruption >= 75 && corruption < 90) {
+    overlay.style.background = "rgba(255,0,0,0.15)";
+  }
+
+  // 90% — popup storm
+  if (corruption >= 90 && corruption < 100) {
+    overlay.style.background = "rgba(255,0,0,0.25)";
+    if (!window.popupStormActive) {
+      window.popupStormActive = true;
+      window.popupStormInterval = setInterval(() => {
+        spawnPopup(false);
+      }, 500);
+    }
+  }
+
+  // 100% — crash
+  if (corruption >= 100 && phase !== "night" && phase !== "crash") {
+    triggerCorruptionCrash();
+  }
+}
+
+/* ---------------------------------------------------
+   SETUP WIZARD LOGIC
+----------------------------------------------------*/
+
+setupNext.onclick = () => {
+  setupStep++;
+
+  if (setupStep === 1) {
+    setupBox.innerHTML = `
+      <div id="setup-title">Choose a Username</div>
+      <input id="setup-input" placeholder="Your name">
+      <button class="setup-btn" id="setup-next2">Continue</button>
+    `;
+    document.getElementById("setup-next2").onclick = () => {
+      const input = document.getElementById("setup-input");
+      username = input.value.trim() || "User";
+      setupStep = 2;
+      showSettings();
+    };
+  }
+};
+
+function showSettings() {
+  setupBox.innerHTML = `
+    <div id="setup-title">Configure Settings</div>
+    <div style="text-align:left; margin:0 auto; width:80%;">
+      <p><input type="checkbox" checked> Enable Auto-Updates</p>
+      <p><input type="checkbox" checked> Enable PandaCloud Sync</p>
+      <p><input type="checkbox"> Enable Popup Blocker</p>
+      <p><input type="checkbox"> Enable Firewall</p>
+    </div>
+    <button class="setup-btn" id="setup-next3">Continue</button>
+  `;
+  document.getElementById("setup-next3").onclick = () => {
+    setupStep = 3;
+    runSystemCheck();
+  };
+}
+
+function runSystemCheck() {
+  setupBox.innerHTML = `
+    <div id="setup-title">Checking System Integrity…</div>
+    <div id="setup-progress"><div id="setup-bar"></div></div>
+  `;
+
+  const setupProgress = document.getElementById("setup-progress");
+  const setupBar = document.getElementById("setup-bar");
+
+  setupProgress.style.display = "block";
+
+  let p = 0;
+  let interval = setInterval(() => {
+    p += 5;
+    setupBar.style.width = p + "%";
+
+    if (p === 70) {
+      setupBox.style.background = "rgba(255,0,0,0.2)";
+      setTimeout(() => setupBox.style.background = "rgba(255,255,255,0.1)", 300);
+    }
+
+    if (p >= 100) {
+      clearInterval(interval);
+      setTimeout(bootPandaOS, 800);
+    }
+  }, 200);
+}
+
+function bootPandaOS() {
+  setupScreen.style.display = "none";
+  bootScreen.style.display = "flex";
+
+  setTimeout(() => {
+    bootScreen.style.display = "none";
+    startVulnerableDesktop();
+  }, 2000);
+}
+
+/* ---------------------------------------------------
+   VULNERABLE DESKTOP
+----------------------------------------------------*/
+
+function startVulnerableDesktop() {
+  desktopWrapper.style.display = "block";
+  corruptionBar.style.display = "block";
+  dayEl.textContent = "Setup";
+  phaseEl.textContent = "Vulnerable";
+
+  setInterval(() => {
+    if (phase === "vulnerable") spawnPopup(true);
+  }, 2000);
+}
+
+/* ---------------------------------------------------
+   POPUPS
+----------------------------------------------------*/
+
+function spawnPopup(isVulnerable = false) {
+  const p = document.createElement("div");
+  p.className = "popup";
+  p.style.left = (50 + Math.random() * (window.innerWidth - 350)) + "px";
+  p.style.top = (50 + Math.random() * (window.innerHeight - 200)) + "px";
+
+  p.innerHTML = `
+    <div class="popup-header">
+      <span>Warning</span>
+      <span class="popup-close">X</span>
+    </div>
+    <div class="popup-body">
+      Suspicious activity detected.<br>
+      <b>PANDACOIN.EXE</b> is attempting to run.
+    </div>
+  `;
+
+  p.querySelector(".popup-close").onclick = () => p.remove();
+  document.body.appendChild(p);
+
+  setTimeout(() => {
+    if (document.body.contains(p)) {
+      corruption = Math.min(100, corruption + (isVulnerable ? 5 : 2));
+      updateHUD();
+    }
+  }, 4000);
+}
+
+/* ---------------------------------------------------
+   WINDOWS (APPS)
+----------------------------------------------------*/
+
+let z = 10;
+function createWindow(title, builder) {
+  const w = document.createElement("div");
+  w.className = "window";
+  w.style.left = (150 + Math.random() * 200) + "px";
+  w.style.top = (80 + Math.random() * 120) + "px";
+  w.style.zIndex = z++;
+
+  const bar = document.createElement("div");
+  bar.className = "window-titlebar";
+  bar.innerHTML = `<span>${title}</span>`;
+  const btns = document.createElement("div");
+  btns.className = "window-buttons";
+  const close = document.createElement("div");
+  close.className = "window-button";
+  close.textContent = "X";
+  close.onclick = () => w.remove();
+  btns.appendChild(close);
+  bar.appendChild(btns);
+  w.appendChild(bar);
+
+  const content = document.createElement("div");
+  content.className = "window-content";
+  w.appendChild(content);
+
+  document.body.appendChild(w);
+
+  let drag = false, ox = 0, oy = 0;
+  bar.onmousedown = e => {
+    drag = true;
+    ox = e.clientX - w.offsetLeft;
+    oy = e.clientY - w.offsetTop;
+    w.style.zIndex = z++;
+  };
+  document.onmouseup = () => drag = false;
+  document.onmousemove = e => {
+    if (!drag) return;
+    w.style.left = (e.clientX - ox) + "px";
+    w.style.top = (e.clientY - oy) + "px";
+  };
+
+  builder(content);
+}
+
+/* ---------------------------------------------------
+   JUNK CLEANER
+----------------------------------------------------*/
+
+document.getElementById("icon-junk").onclick = () => {
+  createWindow("Junk Cleaner", content => {
+    let junk = 10 + Math.floor(Math.random() * 10);
+    content.innerHTML = `
+      <p>Remove junk files to earn PC.</p>
+      <p>Files remaining: <span id="junk-count">${junk}</span></p>
+      <button id="junk-btn">Delete File</button>
+      <div id="junk-msg" style="margin-top:8px;font-size:12px;"></div>
+    `;
+    const countEl = content.querySelector("#junk-count");
+    const msg = content.querySelector("#junk-msg");
+
+    content.querySelector("#junk-btn").onclick = () => {
+      if (junk > 0) {
+        junk--;
+        countEl.textContent = junk;
+        corruption = Math.max(0, corruption - 1);
+        updateHUD();
+      }
+      if (junk === 0) {
+        coins += 8;
+        msg.textContent = "Cleanup complete. +8 PC";
+        updateHUD();
+      }
+    };
+  });
+};
+
+/* ---------------------------------------------------
+   TASK MANAGER
+----------------------------------------------------*/
+
+document.getElementById("icon-taskmgr").onclick = () => {
+  createWindow("Task Manager", content => {
+    const processes = [
+      "system32_guardian.exe",
+      "panda_core.exe",
+      "virus_fragment_12.exe",
+      "popup_spawner.exe",
+      "safe_driver.exe"
+    ];
+
+    content.innerHTML = `
+      <p><b>Processes</b></p>
+      <ul id="proc-list" style="font-size:12px;"></ul>
+      <div id="proc-msg" style="margin-top:8px;font-size:12px;"></div>
+    `;
+
+    const list = content.querySelector("#proc-list");
+    const msg = content.querySelector("#proc-msg");
+
+    processes.forEach(p => {
+      const li = document.createElement("li");
+      li.textContent = p;
+      li.style.cursor = "pointer";
+      li.onclick = () => {
+        if (p.includes("virus") || p.includes("popup")) {
+          coins += 4;
+          corruption = Math.max(0, corruption - 3);
+          msg.textContent = `Terminated ${p}. +4 PC`;
+          li.remove();
+          updateHUD();
+        } else {
+          msg.textContent = `${p} is safe.`;
+        }
+      };
+      list.appendChild(li);
+    });
+  });
+};
+
+/* ---------------------------------------------------
+   DAILY CHALLENGE
+----------------------------------------------------*/
+
+let challengeDone = false;
+
+document.getElementById("icon-challenge").onclick = () => {
+  createWindow("Daily Challenge", content => {
+    if (challengeDone) {
+      content.innerHTML = `<p>You already completed today's challenge.</p>`;
+      return;
+    }
+
+    content.innerHTML = `
+      <p><b>Close 5 popups today.</b></p>
+      <p>Progress: <span id="chal-prog">0</span>/5</p>
+      <div id="chal-msg" style="margin-top:8px;font-size:12px;"></div>
+    `;
+
+    let prog = 0;
+    const progEl = content.querySelector("#chal-prog");
+    const msg = content.querySelector("#chal-msg");
+
+    document.addEventListener("click", e => {
+      if (e.target.classList.contains("popup-close")) {
+        prog++;
+        progEl.textContent = prog;
+        if (prog >= 5 && !challengeDone) {
+          challengeDone = true;
+          coins += 20;
+          msg.textContent = "Challenge complete! +20 PC";
+          updateHUD();
+        }
+      }
+    }, { once: false });
+  });
+};
+
+/* ---------------------------------------------------
+   PANDASHOP (BUY ANTIVIRUS)
+----------------------------------------------------*/
+
+document.getElementById("icon-pandashop").onclick = () => {
+  createWindow("Pandashop", content => {
+    if (!antivirusInstalled) {
+      content.innerHTML = `
+        <p><b>PandaAntivirus</b></p>
+        <p>Cost: 50 PC</p>
+        <button id="buyAV">Install Antivirus</button>
+        <div id="shopmsg" style="margin-top:8px;font-size:12px;"></div>
+      `;
+      const msg = content.querySelector("#shopmsg");
+
+      content.querySelector("#buyAV").onclick = () => {
+        if (coins >= 50) {
+          coins -= 50;
+          antivirusInstalled = true;
+          msg.textContent = "Installing PandaAntivirus…";
+          updateHUD();
+          setTimeout(rebootSystem, 1500);
+        } else {
+          msg.textContent = "Not enough PC.";
+        }
+      };
+    } else {
+      content.innerHTML = `<p>PandaAntivirus already installed.</p>`;
+    }
+  });
+};
+
+/* ---------------------------------------------------
+   SYSTEM REBOOT
+----------------------------------------------------*/
+
+function rebootSystem() {
+  desktopWrapper.style.display = "none";
+  bootScreen.style.display = "flex";
+  bootScreen.innerHTML = `<div id="boot-logo">🐼</div><div>Applying updates…</div>`;
+
+  setTimeout(() => {
+    bootScreen.style.display = "none";
+    startProtectedDesktop();
+  }, 2000);
+}
+
+/* ---------------------------------------------------
+   PROTECTED DESKTOP (REAL GAME START)
+----------------------------------------------------*/
+
+function startProtectedDesktop() {
+  desktopWrapper.style.display = "block";
+  day = 1;
+  phase = "day";
+  dayEl.textContent = `Day ${day}/7`;
+  phaseEl.textContent = "Day";
+  document.getElementById("taskbar-title").textContent = "PandaOS";
+
+  setInterval(() => {
+    if (phase === "day") startNight();
+  }, 45000);
+}
+
+/* ---------------------------------------------------
+   NIGHT MODE (TOWER DEFENSE)
+----------------------------------------------------*/
+
+const canvas = document.getElementById("td-canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight - 40;
+
+let enemies = [];
+let towers = [];
+let spawnTimer = 0;
+let nightTimer = 60;
+let coreHP = 10;
+
+function startNight() {
+  phase = "night";
+  phaseEl.textContent = "Night";
+
+  enemies = [];
+  towers = [];
+  spawnTimer = 0;
+  nightTimer = 60;
+  coreHP = 10;
+
+  document.getElementById("td-canvas").style.display = "block";
+  document.getElementById("td-ui").style.display = "block";
+
+  requestAnimationFrame(tdLoop);
+}
+
+canvas.onclick = e => {
+  if (!canPlaceTower || coins < 10) return;
+
+  canPlaceTower = false;
+  coins -= 10;
+  updateHUD();
+
+  const laneHeight = canvas.height / 3;
+  const lane = Math.floor(e.clientY / laneHeight);
+
+  towers.push({
+    x: e.clientX,
+    lane,
+    hp: 5,
+    cooldown: 0
+  });
+
+  setTimeout(() => canPlaceTower = true, 1000);
+};
+
+function tdLoop() {
+  if (phase !== "night") return;
+  requestAnimationFrame(tdLoop);
+
+  ctx.fillStyle = "#05060a";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const dt = 1 / 60;
+  nightTimer -= dt;
+  if (nightTimer <= 0) return winNight();
+
+  spawnTimer += dt;
+  if (spawnTimer >= 1) {
+    spawnTimer = 0;
+    enemies.push({
+      x: canvas.width + 40,
+      lane: Math.floor(Math.random() * 3),
+      hp: 4 + day,
+      speed: 40 + day * 5
+    });
+  }
+
+  const laneHeight = canvas.height / 3;
+
+  for (let t of towers) {
+    t.cooldown -= dt;
+    ctx.fillStyle = "#6fd36f";
+    ctx.fillRect(t.x - 10, t.lane * laneHeight + laneHeight / 2 - 20, 20, 40);
+
+    if (t.cooldown <= 0) {
+      t.cooldown = 1;
+      for (let e of enemies) {
+        if (e.lane === t.lane && e.x > t.x && e.x < t.x + 300) {
+          e.hp -= 1;
+          break;
+        }
+      }
+    }
+  }
+
+  for (let e of enemies) {
+    e.x -= e.speed * dt;
+    ctx.fillStyle = "#ff4444";
+    ctx.fillRect(e.x - 15, e.lane * laneHeight + laneHeight / 2 - 15, 30, 30);
+
+    if (e.x < 50) {
+      coreHP--;
+      e.hp = 0;
+    }
+  }
+
+  enemies = enemies.filter(e => e.hp > 0);
+
+  document.getElementById("td-timer").textContent = `Night: ${Math.ceil(nightTimer)}s`;
+  document.getElementById("td-coins").textContent = `PC: ${coins}`;
+  document.getElementById("td-lives").textContent = `Core HP: ${coreHP}`;
+
+  if (coreHP <= 0) loseGame();
+}
+
+/* ---------------------------------------------------
+   WIN / LOSE
+----------------------------------------------------*/
+
+function winNight() {
+  phase = "day";
+  day++;
+  if (day > 7) {
+    document.getElementById("end-screen").style.display = "flex";
+    return;
+  }
+  dayEl.textContent = `Day ${day}/7`;
+  phaseEl.textContent = "Day";
+
+  document.getElementById("td-canvas").style.display = "none";
+  document.getElementById("td-ui").style.display = "none";
+}
+
+function loseGame() {
+  // Hide mouse
+  document.body.style.cursor = "none";
+
+  document.body.innerHTML = `
+    <div style="
+      background:white;
+      color:#000;
+      font-family:Segoe UI, sans-serif;
+      width:100vw;
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      font-size:24px;
+    ">
+      <div style="font-size:80px; color:#0078D7;">:(</div>
+      <p>Your PandaOS ran into a problem and couldn't defend itself.</p>
+      <p>PANDACOIN.EXE has taken over.</p>
+      <p style="margin-top:20px; font-size:14px; opacity:0.6;">
+        System will shut down automatically…
+      </p>
+    </div>
+  `;
+
+  setTimeout(() => {
+    location.replace("about:blank");
+  }, 10000);
+}
+
+/* ---------------------------------------------------
+   CORRUPTION CRASH (100%)
+----------------------------------------------------*/
+
+function triggerCorruptionCrash() {
+  phase = "crash";
+
+  // Hide mouse
+  document.body.style.cursor = "none";
+
+  document.body.innerHTML = `
+    <div style="
+      background:white;
+      color:#000;
+      font-family:Segoe UI, sans-serif;
+      width:100vw;
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      font-size:24px;
+    ">
+      <div style="font-size:80px; color:#0078D7;">:(</div>
+      <p>Your PandaOS became too corrupted to continue.</p>
+      <p>PANDACOIN.EXE has taken full control.</p>
+      <p style="margin-top:20px; font-size:14px; opacity:0.6;">
+        System will shut down automatically…
+      </p>
+    </div>
+  `;
+
+  setTimeout(() => {
+    location.replace("about:blank");
+  }, 10000);
+}
+
+</script>
+</body>
+</html>

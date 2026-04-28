@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Panda Siege: Base Clash</title>
+<style>
+    body { margin:0; background:#111; overflow:hidden; font-family:'Segoe UI',sans-serif; color:#fff; }
+    #ui {
+        position:absolute; top:10px; left:10px; padding:10px;
+        background:rgba(0,0,0,0.6); border-radius:8px; border:1px solid #0ff;
+        max-width:440px; font-size:12px;
+    }
+    #buttons { margin-top:6px; display:flex; flex-wrap:wrap; gap:4px; }
+    button {
+        padding:4px 6px; font-size:11px; border:none; border-radius:4px;
+        background:#00d4ff; color:#000; cursor:pointer; font-weight:bold;
+    }
+    button:disabled { background:#444; color:#999; cursor:default; }
+    .bar {
+        height:10px; background:#333; border-radius:4px; overflow:hidden; margin-top:4px;
+    }
+    .bar-inner {
+        height:100%; background:#0f0;
+    }
+</style>
+</head>
+<body>
+<div id="ui">
+    <div><b>Elixir:</b> <span id="elixir-text">0</span> / 10</div>
+    <div class="bar"><div id="elixir-bar" class="bar-inner" style="width:0%"></div></div>
+    <div style="margin-top:6px;">
+        <b>Your Bamboo Den HP:</b> <span id="base-left-hp">1000</span> |
+        <b>Enemy Fortress HP:</b> <span id="base-right-hp">1000</span>
+    </div>
+    <div class="bar"><div id="base-left-bar" class="bar-inner" style="width:100%;background:#0f0"></div></div>
+    <div class="bar"><div id="base-right-bar" class="bar-inner" style="width:100%;background:#f00"></div></div>
+
+    <div id="buttons">
+        <button onclick="spawn('knight')" id="btn-knight">Panda Knight (2)</button>
+        <button onclick="spawn('archer')" id="btn-archer">Panda Archer (3)</button>
+        <button onclick="spawn('giant')" id="btn-giant">Panda Giant (5)</button>
+        <button onclick="spawn('rogue')" id="btn-rogue">Panda Rogue (4)</button>
+        <button onclick="spawn('mage')" id="btn-mage">Panda Mage (6)</button>
+        <button onclick="spawn('shield')" id="btn-shield">Panda Shield (3)</button>
+        <button onclick="spawn('bomber')" id="btn-bomber">Panda Bomber (2)</button>
+        <button onclick="spawn('dragon')" id="btn-dragon">Panda Dragon (7)</button>
+    </div>
+    <div id="status" style="margin-top:6px;color:#0ff;">Deploy your panda army.</div>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let W = window.innerWidth;
+let H = window.innerHeight;
+canvas.width = W;
+canvas.height = H;
+
+const GROUND_Y = H - 120;
+const LEFT_BASE_X = 80;
+const RIGHT_BASE_X = W - 80;
+
+let gameOver = false;
+let winner = null;
+
+let elixir = 0;
+let maxElixir = 10;
+let elixirRegen = 0.02; // ~1.2/s at 60fps
+
+let baseLeft = { hp:1000, maxHp:1000 };
+let baseRight = { hp:1000, maxHp:1000 };
+
+const troops = [];
+const projectiles = [];
+
+const troopTypes = {
+    knight: {
+        name:"Panda Knight", cost:2,
+        hp:120, atk:18, range:25, speed:1.4, atkDelay:40,
+        type:"melee", color:"#7fc4ff"
+    },
+    archer: {
+        name:"Panda Archer", cost:3,
+        hp:70, atk:12, range:160, speed:1.0, atkDelay:55,
+        type:"ranged", color:"#a0ffea"
+    },
+    giant: {
+        name:"Panda Giant", cost:5,
+        hp:260, atk:25, range:30, speed:0.7, atkDelay:70,
+        type:"melee", color:"#d0d0d0"
+    },
+    rogue: {
+        name:"Panda Rogue", cost:4,
+        hp:80, atk:30, range:25, speed:2.0, atkDelay:35,
+        type:"melee-assassin", color:"#ff66aa"
+    },
+    mage: {
+        name:"Panda Mage", cost:6,
+        hp:90, atk:22, range:140, speed:0.8, atkDelay:80,
+        type:"aoe", color:"#c080ff"
+    },
+    shield: {
+        name:"Panda Shield", cost:3,
+        hp:200, atk:10, range:25, speed:0.8, atkDelay:60,
+        type:"tank", color:"#88ff88"
+    },
+    bomber: {
+        name:"Panda Bomber", cost:2,
+        hp:40, atk:60, range:20, speed:1.3, atkDelay:10,
+        type:"suicide", color:"#ffdd55"
+    },
+    dragon: {
+        name:"Panda Dragon", cost:7,
+        hp:150, atk:18, range:150, speed:1.2, atkDelay:50,
+        type:"flying", color:"#ff8844"
+    }
+};
+
+function spawn(key) {
+    if (gameOver) return;
+    const t = troopTypes[key];
+    if (!t) return;
+    if (elixir < t.cost) {
+        setStatus("Not enough elixir for " + t.name);
+        return;
+    }
+    elixir -= t.cost;
+    const side = "left";
+    const x = LEFT_BASE_X + 40;
+    const y = (t.type === "flying") ? GROUND_Y - 60 : GROUND_Y;
+    troops.push({
+        side,
+        key,
+        ...t,
+        x,
+        y,
+        hp: t.hp,
+        maxHp: t.hp,
+        atkTimer:0
+    });
+    setStatus("Deployed " + t.name + "!");
+}
+
+function spawnEnemyRandom() {
+    if (gameOver) return;
+    const keys = Object.keys(troopTypes);
+    const key = keys[Math.floor(Math.random()*keys.length)];
+    const t = troopTypes[key];
+    const side = "right";
+    const x = RIGHT_BASE_X - 40;
+    const y = (t.type === "flying") ? GROUND_Y - 60 : GROUND_Y;
+    troops.push({
+        side,
+        key,
+        ...t,
+        x,
+        y,
+        hp: t.hp,
+        maxHp: t.hp,
+        atkTimer:0
+    });
+}
+
+setInterval(spawnEnemyRandom, 3000);
+
+function setStatus(msg) {
+    document.getElementById('status').textContent = msg;
+}
+
+function update() {
+    if (gameOver) return;
+
+    elixir += elixirRegen;
+    if (elixir > maxElixir) elixir = maxElixir;
+
+    updateTroops();
+    updateProjectiles();
+    checkBaseStatus();
+    updateUI();
+}
+
+function updateTroops() {
+    for (let i = troops.length-1; i>=0; i--) {
+        const u = troops[i];
+        if (u.hp <= 0) {
+            troops.splice(i,1);
+            continue;
+        }
+
+        u.atkTimer--;
+
+        const enemyBase = (u.side === "left") ? baseRight : baseLeft;
+        const enemyBaseX = (u.side === "left") ? RIGHT_BASE_X : LEFT_BASE_X;
+
+        let target = findNearestEnemy(u);
+
+        let inRange = false;
+        if (target) {
+            const dx = target.x - u.x;
+            const dist = Math.abs(dx);
+            if (dist <= u.range) inRange = true;
+        } else {
+            const distBase = Math.abs(enemyBaseX - u.x);
+            if (distBase <= u.range + 10) inRange = true;
+        }
+
+        // Always correct direction: left side → right, right side → left
+        let moveDir = (u.side === "left") ? 1 : -1;
+
+        // Assassin only changes priority, not direction
+        if (u.type === "melee-assassin" && target) {
+            // still moves toward enemy base, just prefers squishies when in range
+        }
+
+        if (!inRange) {
+            u.x += u.speed * moveDir;
+        }
+
+        if (u.atkTimer <= 0 && inRange) {
+            attack(u, target, enemyBase, enemyBaseX);
+            u.atkTimer = u.atkDelay;
+        }
+
+        if (u.side === "left" && u.x > RIGHT_BASE_X + 40) u.x = RIGHT_BASE_X + 40;
+        if (u.side === "right" && u.x < LEFT_BASE_X - 40) u.x = LEFT_BASE_X - 40;
+    }
+}
+
+function findNearestEnemy(u) {
+    let best = null;
+    let bestDist = Infinity;
+    for (const v of troops) {
+        if (v.side === u.side) continue;
+        const d = Math.abs(v.x - u.x);
+        if (d < bestDist) {
+            bestDist = d;
+            best = v;
+        }
+    }
+    return best;
+}
+
+function attack(u, target, enemyBase, enemyBaseX) {
+    if (u.type === "ranged" || u.type === "flying") {
+        const tx = target ? target.x : enemyBaseX;
+        const ty = target ? target.y : GROUND_Y;
+        const frames = 25;
+        projectiles.push({
+            x:u.x, y:u.y-10,
+            vx:(tx - u.x)/frames,
+            vy:(ty - u.y)/frames,
+            dmg:u.atk,
+            side:u.side
+        });
+    } else if (u.type === "aoe") {
+        if (target) {
+            for (const v of troops) {
+                if (v.side === u.side) continue;
+                const d = Math.abs(v.x - target.x);
+                if (d < 60) v.hp -= u.atk;
+            }
+        } else {
+            enemyBase.hp -= u.atk;
+        }
+    } else if (u.type === "suicide") {
+        if (target) {
+            for (const v of troops) {
+                if (v.side === u.side) continue;
+                const d = Math.abs(v.x - u.x);
+                if (d < 50) v.hp -= u.atk;
+            }
+        } else {
+            enemyBase.hp -= u.atk;
+        }
+        u.hp = 0;
+    } else {
+        if (target) {
+            target.hp -= u.atk;
+        } else {
+            enemyBase.hp -= u.atk;
+        }
+    }
+}
+
+function updateProjectiles() {
+    for (let i = projectiles.length-1; i>=0; i--) {
+        const p = projectiles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0 || p.x > W || p.y < 0 || p.y > H) {
+            projectiles.splice(i,1);
+            continue;
+        }
+
+        let hit = false;
+        for (const u of troops) {
+            if (u.side === p.side) continue;
+            const d = Math.hypot(u.x - p.x, u.y - p.y);
+            if (d < 18) {
+                u.hp -= p.dmg;
+                hit = true;
+                break;
+            }
+        }
+        if (hit) {
+            projectiles.splice(i,1);
+            continue;
+        }
+
+        const enemyBaseX = (p.side === "left") ? RIGHT_BASE_X : LEFT_BASE_X;
+        const enemyBase = (p.side === "left") ? baseRight : baseLeft;
+        if (Math.abs(p.x - enemyBaseX) < 30 && Math.abs(p.y - GROUND_Y) < 60) {
+            enemyBase.hp -= p.dmg;
+            projectiles.splice(i,1);
+        }
+    }
+}
+
+function checkBaseStatus() {
+    if (baseLeft.hp <= 0 && !gameOver) {
+        baseLeft.hp = 0;
+        gameOver = true;
+        winner = "Enemy";
+        setStatus("Your bamboo den has fallen. Defeat.");
+    }
+    if (baseRight.hp <= 0 && !gameOver) {
+        baseRight.hp = 0;
+        gameOver = true;
+        winner = "You";
+        setStatus("Enemy fortress destroyed. Panda victory!");
+    }
+}
+
+function updateUI() {
+    document.getElementById('elixir-text').textContent = elixir.toFixed(1);
+    document.getElementById('base-left-hp').textContent = Math.max(0,Math.floor(baseLeft.hp));
+    document.getElementById('base-right-hp').textContent = Math.max(0,Math.floor(baseRight.hp));
+
+    document.getElementById('elixir-bar').style.width = (elixir/maxElixir*100)+"%";
+    document.getElementById('base-left-bar').style.width = (baseLeft.hp/baseLeft.maxHp*100)+"%";
+    document.getElementById('base-right-bar').style.width = (baseRight.hp/baseRight.maxHp*100)+"%";
+
+    for (const key in troopTypes) {
+        const btn = document.getElementById('btn-'+key);
+        if (!btn) continue;
+        btn.disabled = (elixir < troopTypes[key].cost || gameOver);
+    }
+}
+
+function draw() {
+    ctx.clearRect(0,0,W,H);
+
+    ctx.fillStyle = "#1b3b1b";
+    ctx.fillRect(0,GROUND_Y+20,W,H-GROUND_Y-20);
+    ctx.fillStyle = "#2b5b2b";
+    ctx.fillRect(0,GROUND_Y,W,40);
+
+    drawBase(LEFT_BASE_X, GROUND_Y, baseLeft, true);
+    drawBase(RIGHT_BASE_X, GROUND_Y, baseRight, false);
+
+    for (const u of troops) drawTroop(u);
+    for (const p of projectiles) drawProjectile(p);
+
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(0,0,W,H);
+        ctx.fillStyle = "#fff";
+        ctx.font = "32px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(winner === "You" ? "Panda Triumph!" : "Pandas Perished...", W/2, H/2);
+        ctx.font = "18px Segoe UI";
+        ctx.fillText("Refresh to play again.", W/2, H/2+40);
+    }
+}
+
+function drawBase(x,y,base,isLeft) {
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.fillStyle = "#3a2b1a";
+    ctx.fillRect(-40,-80,80,80);
+
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(0,-60,22,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.arc(-14,-72,8,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(14,-72,8,0,Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.arc(-8,-63,5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(8,-63,5,0,Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = "#000";
+    ctx.fillRect(-8,-55,16,4);
+
+    ctx.fillStyle = "#3b7f3b";
+    ctx.fillRect(-6,-40,12,30);
+
+    ctx.fillStyle = isLeft ? "#0f0" : "#f00";
+    ctx.fillRect(-30,-30,60,10);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(-30,-30,60*(1-base.hp/base.maxHp),10);
+    ctx.restore();
+}
+
+function drawTroop(u) {
+    ctx.save();
+    ctx.translate(u.x,u.y);
+
+    if (u.type === "flying") ctx.translate(0,-25);
+
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(0,-20,14,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.arc(-10,-30,6,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(10,-30,6,0,Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.arc(-6,-23,4,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6,-23,4,0,Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = "#000";
+    ctx.fillRect(-6,-15,12,3);
+
+    ctx.fillStyle = "#ff99aa";
+    ctx.beginPath(); ctx.arc(-6,-17,2,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6,-17,2,0,Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = u.color;
+    ctx.fillRect(-12,-6,24,18);
+
+    ctx.fillStyle = "#3b7f3b";
+    ctx.fillRect(10,-4,4,18);
+
+    ctx.fillStyle = "#000";
+    ctx.fillRect(-10,10,8,12);
+    ctx.fillRect(2,10,8,12);
+
+    const hpRatio = u.hp/u.maxHp;
+    ctx.fillStyle = "#f00";
+    ctx.fillRect(-14,-34,28,3);
+    ctx.fillStyle = "#0f0";
+    ctx.fillRect(-14,-34,28*hpRatio,3);
+
+    ctx.restore();
+}
+
+function drawProjectile(p) {
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.fillStyle = "#ffdd55";
+    ctx.beginPath();
+    ctx.arc(0,0,4,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+window.addEventListener('resize', () => {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W;
+    canvas.height = H;
+});
+
+loop();
+</script>
+</body>
+</html>

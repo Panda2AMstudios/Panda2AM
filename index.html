@@ -1,0 +1,2622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Panda 2AM Studios</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:#0d0d0d;
+  color:white;
+}
+
+nav {
+  background:#111;
+  padding:15px;
+  border-bottom:1px solid #222;
+  text-align:center;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+nav button {
+  background:none;
+  border:none;
+  color:white;
+  font-size:18px;
+  margin:0 10px;
+  cursor:pointer;
+  padding:8px 14px;
+  border-radius:6px;
+}
+nav button:hover { background:#222; }
+nav button.activeTab {
+  background:#7be0b5;
+  color:#000;
+  font-weight:bold;
+}
+
+header {
+  text-align:center;
+  padding:40px 20px;
+  background:#111;
+  border-bottom:1px solid #222;
+}
+header img {
+  width:180px;
+  height:auto;
+  margin-bottom:20px;
+  user-select:none;
+}
+header h1 {
+  font-size:42px;
+  margin:0;
+  letter-spacing:2px;
+}
+header p {
+  font-size:18px;
+  opacity:0.8;
+  margin-top:10px;
+}
+
+.section {
+  max-width:900px;
+  margin:30px auto 60px auto;
+  padding:0 20px;
+  display:none;
+}
+.section.active { display:block; }
+
+h2 { font-size:28px; margin-bottom:10px; }
+p { line-height:1.7; opacity:0.9; font-size:16px; }
+
+.infoRow { margin-top:8px; font-size:16px; }
+
+.msg {
+  margin-top:10px;
+  padding:8px 10px;
+  border-radius:6px;
+  font-size:14px;
+}
+.msg.error { background:#3b1a1a; color:#ff8a8a; }
+.msg.success { background:#1a3b1f; color:#8aff9b; }
+
+/* TOP RIGHT STATS */
+#topRightStats {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  text-align: right;
+  font-size: 16px;
+  line-height: 1.4;
+  z-index: 9999;
+  background: rgba(0,0,0,0.45);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #333;
+}
+#coinCounter {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  font-weight:bold;
+  color:#f5d76e;
+}
+.coinIcon {
+  width:20px;
+  height:20px;
+  background: radial-gradient(circle at 30% 30%, #fff6c7, #f5d76e 60%, #d9b54a);
+  border-radius:50%;
+  position:relative;
+  box-shadow:0 0 6px rgba(0,0,0,0.4);
+}
+.coinIcon::before {
+  content:"";
+  position:absolute;
+  left:9px;
+  top:4px;
+  width:2px;
+  height:12px;
+  background:#3a7f2e;
+  border-radius:1px;
+}
+.coinIcon::after {
+  content:"";
+  position:absolute;
+  left:7px;
+  top:6px;
+  width:6px;
+  height:3px;
+  background:#3a7f2e;
+  border-radius:2px;
+  transform:rotate(-25deg);
+}
+#visitCounter {
+  font-weight:bold;
+  color:#f5d76e;
+}
+
+/* GAMES */
+.gameCard {
+  background:#151515;
+  border:1px solid #333;
+  border-radius:10px;
+  padding:15px;
+  margin-top:15px;
+}
+.gameCard h3 {
+  margin:0 0 6px 0;
+}
+.gameCard button {
+  margin-top:8px;
+  padding:6px 10px;
+  border:none;
+  border-radius:6px;
+  background:#7be0b5;
+  color:#000;
+  cursor:pointer;
+}
+.gameCard button:hover {
+  background:#a4f2cf;
+}
+
+/* GARDEN */
+#gardenWrapper {
+  position:relative;
+  width:800px;
+  margin:20px auto;
+}
+#gardenCanvas {
+  display:block;
+  width:800px;
+  height:400px;
+  border:2px solid #444;
+  background: linear-gradient(to bottom, #7ed957, #3fa34d);
+}
+#inventoryButton {
+  position:absolute;
+  bottom:10px;
+  right:10px;
+  padding:10px 16px;
+  background:#f5d76e;
+  color:#000;
+  font-weight:bold;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  z-index:20;
+}
+#inventoryButton:hover {
+  background:#ffeb9c;
+}
+
+/* CSS PANDA */
+:root {
+  --panda-main: #ffffff;
+  --panda-accent: #000000;
+}
+#cssPanda {
+  position:absolute;
+  width:98px;
+  height:112px;
+  z-index:15;
+  transition: transform 0.1s linear;
+}
+.panda {
+  position: relative;
+  width: 98px;
+  height: 112px;
+  animation: pandaIdle 1.4s ease-in-out infinite;
+}
+@keyframes pandaIdle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.panda.walk {
+  animation: pandaWalk 0.45s ease-in-out infinite;
+}
+@keyframes pandaWalk {
+  0%, 100% { transform: translateY(0) rotate(2deg); }
+  50% { transform: translateY(-3px) rotate(-2deg); }
+}
+.panda .head {
+  position:absolute;
+  top:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:77px;
+  height:70px;
+  background:var(--panda-main);
+  border-radius:50%;
+  box-shadow:0 0 14px rgba(0,0,0,0.4);
+}
+.panda .ear {
+  position:absolute;
+  width:28px;
+  height:28px;
+  background:var(--panda-accent);
+  border-radius:50%;
+  top:-7px;
+}
+.panda .ear.left { left:7px; }
+.panda .ear.right { right:7px; }
+.panda .eye {
+  position:absolute;
+  width:20px;
+  height:20px;
+  background:var(--panda-accent);
+  border-radius:50%;
+  top:27px;
+}
+.panda .eye.left { left:20px; }
+.panda .eye.right { right:20px; }
+.panda .eye::after {
+  content:"";
+  position:absolute;
+  width:7px;
+  height:7px;
+  background:white;
+  border-radius:50%;
+  top:4px;
+  left:4px;
+}
+.panda .nose {
+  position:absolute;
+  top:44px;
+  left:50%;
+  transform:translateX(-50%);
+  width:13px;
+  height:10px;
+  background:var(--panda-accent);
+  border-radius:50% 50% 60% 60%;
+}
+.panda .body {
+  position:absolute;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:84px;
+  height:63px;
+  background:var(--panda-main);
+  border-radius:50%;
+  box-shadow:0 0 14px rgba(0,0,0,0.4);
+}
+.panda .arm {
+  position:absolute;
+  width:28px;
+  height:35px;
+  background:var(--panda-accent);
+  border-radius:40px;
+  top:49px;
+}
+.panda .arm.left { left:0; transform:rotate(10deg); }
+.panda .arm.right { right:0; transform:rotate(-10deg); }
+.panda .leg {
+  position:absolute;
+  width:28px;
+  height:32px;
+  background:var(--panda-accent);
+  border-radius:40px;
+  bottom:-4px;
+}
+.panda .leg.left { left:14px; }
+.panda .leg.right { right:14px; }
+
+/* SHOP */
+.skin-list {
+  margin-top:10px;
+}
+.skinItem {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#151515;
+  border:1px solid #333;
+  border-radius:8px;
+  padding:8px 10px;
+  margin-top:6px;
+}
+.skinItem .skinName {
+  font-size:14px;
+}
+.skinItem .skinRarity {
+  font-size:12px;
+  opacity:0.7;
+}
+.skinItem button {
+  padding:4px 10px;
+  border:none;
+  border-radius:6px;
+  background:#7be0b5;
+  color:#000;
+  cursor:pointer;
+}
+.skinItem button[disabled] {
+  background:#444;
+  color:#999;
+  cursor:default;
+}
+.skinItem button:hover:not([disabled]) {
+  background:#a4f2cf;
+}
+.crate-box {
+  margin-top:20px;
+  padding:12px;
+  border-radius:8px;
+  background:#151515;
+  border:1px solid #333;
+}
+.crate-button {
+  margin-top:8px;
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  background:#f5d76e;
+  color:#000;
+  cursor:pointer;
+}
+.crate-button:hover {
+  background:#ffeb9c;
+}
+
+/* SLOT MACHINE */
+#slotMachine {
+  margin-top:20px;
+  padding:20px;
+  border-radius:16px;
+  background: radial-gradient(circle at top, #3b1f5f, #05030a);
+  border:2px solid #7be0ff;
+  box-shadow:0 0 20px rgba(0,255,255,0.3);
+}
+.slot-header {
+  text-align:center;
+  font-size:20px;
+  margin-bottom:10px;
+  color:#7be0ff;
+  text-shadow:0 0 8px rgba(0,255,255,0.6);
+}
+.slot-row {
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin:15px 0;
+}
+.slot-cell {
+  width:60px;
+  height:60px;
+  border-radius:10px;
+  background:radial-gradient(circle at top, #ffffff, #d0d0d0);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  color:#333;
+  box-shadow:0 0 10px rgba(0,0,0,0.6);
+}
+.casino-button {
+  display:block;
+  margin:0 auto;
+  padding:10px 20px;
+  border:none;
+  border-radius:999px;
+  background:linear-gradient(90deg, #ff00ff, #00ffff);
+  color:#000;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 0 12px rgba(255,0,255,0.6);
+}
+.casino-button:hover {
+  filter:brightness(1.2);
+}
+
+/* ACCOUNT */
+.account-box {
+  background:#151515;
+  border:1px solid #333;
+  border-radius:10px;
+  padding:15px;
+  margin-top:10px;
+}
+.account-box label {
+  display:block;
+  margin-top:8px;
+  font-size:14px;
+}
+.account-box input {
+  width:100%;
+  padding:6px;
+  margin-top:4px;
+  border-radius:6px;
+  border:1px solid #444;
+  background:#111;
+  color:white;
+}
+
+.login-btn, .signup-btn, .logout-btn {
+  margin-top:10px;
+  margin-right:6px;
+  padding:6px 10px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+.login-btn { background:#7be0b5; color:#000; }
+.signup-btn { background:#f5d76e; color:#000; }
+.logout-btn { background:#ff8a8a; color:#000; }
+
+.small-note {
+  margin-top:8px;
+  font-size:12px;
+  opacity:0.7;
+}
+
+/* PANDAS INVENTORY (LIST VIEW) */
+.panda-list {
+  margin-top:10px;
+}
+.pandaItem {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#151515;
+  border:1px solid #333;
+  border-radius:8px;
+  padding:8px 10px;
+  margin-top:6px;
+}
+.pandaInfo {
+  font-size:14px;
+}
+.pandaRarity {
+  font-size:12px;
+  opacity:0.7;
+}
+.pandaItem button {
+  margin-left:6px;
+  padding:4px 8px;
+  border:none;
+  border-radius:6px;
+  background:#7be0b5;
+  color:#000;
+  cursor:pointer;
+}
+.pandaItem button:hover {
+  background:#a4f2cf;
+}
+
+/* RARITY COLORS */
+.rarity-common { color:#cccccc; }
+.rarity-rare { color:#4da6ff; }
+.rarity-epic { color:#b266ff; }
+.rarity-legendary { color:#ffb347; }
+.rarity-mythic { color:#ff4dd2; }
+
+/* QUESTS */
+.questItem {
+  background:#151515;
+  border:1px solid #333;
+  border-radius:10px;
+  padding:12px;
+  margin-top:10px;
+}
+.questItem button {
+  margin-top:8px;
+  padding:6px 10px;
+  border:none;
+  border-radius:6px;
+  background:#7be0b5;
+  color:#000;
+  cursor:pointer;
+}
+.questItem button:hover {
+  background:#a4f2cf;
+}
+
+/* SIMULATOR */
+#simCanvas {
+  transition: transform 0.1s;
+}
+#simCanvas:active {
+  transform: scale(0.95);
+}
+
+/* SMALL CHRISTMAS TREE IN SCHOOL TAB (original) */
+#christmasSection {
+  margin-top:30px;
+}
+#christmasTreeWrapper {
+  position:relative;
+  width:300px;
+  margin:20px auto;
+}
+#christmasTree {
+  width:100%;
+  height:auto;
+  display:block;
+}
+.ornament {
+  position:absolute;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  box-shadow:0 0 6px rgba(0,0,0,0.6);
+}
+.ornament.red { background:#ff4b5c; }
+.ornament.blue { background:#4ba3ff; }
+.ornament.gold { background:#ffd54f; }
+.ornament.green { background:#66bb6a; }
+
+/* positions on the small tree */
+.orn1 { top:35%; left:35%; }
+.orn2 { top:40%; right:30%; }
+.orn3 { top:55%; left:25%; }
+.orn4 { top:60%; right:25%; }
+.orn5 { top:72%; left:40%; }
+.orn6 { top:75%; right:35%; }
+
+/* CALENDAR TAB – BIG CHRISTMAS TREE */
+#calendarTreeWrapper {
+  position:relative;
+  width:420px;
+  margin:20px auto;
+}
+#calendarTreeImg {
+  width:100%;
+  height:auto;
+  display:block;
+  user-select:none;
+}
+.calendar-ornament {
+  position:absolute;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+  font-weight:bold;
+  color:#fff;
+  cursor:pointer;
+  box-shadow:0 0 8px rgba(0,0,0,0.7);
+  transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
+}
+.calendar-ornament.shiny {
+  filter:brightness(1.2);
+}
+.calendar-ornament.shiny:hover {
+  transform:scale(1.1);
+  box-shadow:0 0 12px rgba(255,255,255,0.8);
+}
+.calendar-ornament.dull {
+  filter:grayscale(0.7) brightness(0.7);
+  cursor:default;
+  box-shadow:0 0 4px rgba(0,0,0,0.5);
+}
+.calendar-ornament.locked {
+  filter:grayscale(1) brightness(0.4);
+  cursor:default;
+  box-shadow:none;
+}
+
+/* Christmas colors */
+.calendar-ornament.red { background:#e53935; }
+.calendar-ornament.green { background:#43a047; }
+.calendar-ornament.gold { background:#ffca28; }
+
+/* Rough positions for 25 ornaments on big tree */
+.cal-1  { top:18%; left:48%; }
+.cal-2  { top:24%; left:38%; }
+.cal-3  { top:24%; left:58%; }
+.cal-4  { top:30%; left:30%; }
+.cal-5  { top:30%; left:66%; }
+.cal-6  { top:36%; left:42%; }
+.cal-7  { top:36%; left:54%; }
+.cal-8  { top:42%; left:34%; }
+.cal-9  { top:42%; left:62%; }
+cal-10  { top:48%; left:46%; }
+.cal-10 { top:48%; left:46%; }
+.cal-11 { top:54%; left:28%; }
+.cal-12 { top:54%; left:64%; }
+.cal-13 { top:60%; left:38%; }
+.cal-14 { top:60%; left:54%; }
+.cal-15 { top:66%; left:30%; }
+.cal-16 { top:66%; left:66%; }
+.cal-17 { top:72%; left:42%; }
+.cal-18 { top:72%; left:54%; }
+.cal-19 { top:78%; left:24%; }
+.cal-20 { top:78%; left:70%; }
+.cal-21 { top:84%; left:34%; }
+.cal-22 { top:84%; left:58%; }
+.cal-23 { top:88%; left:46%; }
+.cal-24 { top:92%; left:36%; }
+.cal-25 { top:92%; left:56%; }
+
+/* Calendar info box */
+#calendarInfo {
+  margin-top:10px;
+  padding:10px;
+  border-radius:8px;
+  background:#151515;
+  border:1px solid #333;
+  font-size:14px;
+}
+
+/* Simple pandsnowman legend text */
+#calendarLegend {
+  margin-top:8px;
+  font-size:14px;
+  opacity:0.85;
+}
+</style>
+</head>
+<body>
+
+<!-- PRIVACY POLICY POPUP -->
+<div id="privacyPopup" style="
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.75);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+">
+  <div style="
+      background: #111;
+      padding: 20px;
+      width: 350px;
+      border: 2px solid #444;
+      border-radius: 8px;
+      color: white;
+      text-align: left;
+  ">
+    <h3>Privacy Notice</h3>
+
+    <p>
+      We only collect the minimum information needed for the site to function properly.
+      Your username and password are stored locally on your device using localStorage.
+      Nothing is sent to any server.
+    </p>
+
+    <p>
+      We do not take responsibility for any bad habits your child may learn from this site.
+      Use at your own discretion. You may only check this box if you are a parent/guardian
+      or you have permission from one to use this website.
+    </p>
+
+    <label style="display:flex; align-items:center; gap:6px; margin-top:10px;">
+      <input type="checkbox" id="privacyAgree">
+      <span>I understand and agree.</span>
+    </label>
+
+    <button onclick="closePrivacyPopup()" style="
+        margin-top: 15px;
+        width: 100%;
+        padding: 8px;
+        background: #444;
+        border: 1px solid #777;
+        color: white;
+        cursor: pointer;
+    ">Continue</button>
+  </div>
+</div>
+
+<div id="topRightStats">
+  <div id="coinCounter"><div class="coinIcon"></div> PandaCoins: 0</div>
+  <div id="visitCounter">Visits: 0</div>
+</div>
+
+<nav>
+  <button class="activeTab" onclick="showTab('gamesTab', this)">Games</button>
+  <button onclick="showTab('gardenTab', this)">Panda Garden</button>
+  <button onclick="showTab('pandasTab', this)">Pandas</button>
+  <button onclick="showTab('casinoTab', this)">Panda Casino</button>
+  <button onclick="showTab('searchUsersTab', this)">Search Users</button>
+  <button onclick="showTab('shopTab', this)">Shop</button>
+  <button onclick="showTab('calendarTab', this)">Calendar</button>
+  <button onclick="showTab('accountTab', this)">Account</button>
+  <button onclick="showTab('questsTab', this)">Quests</button>
+  <button onclick="showTab('schoolTab', this)">School stuff</button>
+  <button onclick="showTab('simulatorTab', this)">Panda Simulator</button>
+</nav>
+
+<header>
+  <img src="panda inc logo.png" alt="Panda 2AM Studios Logo">
+  <h1>Panda 2AM Studios</h1>
+  <p>Late‑night creativity brought to life</p>
+</header>
+
+<!-- GAMES -->
+<div id="gamesTab" class="section active">
+  <h2>Games</h2>
+  <p>All your Panda 2AM games in one place.</p>
+
+  <div class="gameCard">
+    <h3>SdkfjsIEJ490*sd</h3>
+    <p>unknown - SdkfjsIEJ490*sd(newest game)</p>
+    <button onclick="playGame('glitch.html')">Play SdkfjsIEJ490*sd</button>
+  </div>
+
+  <div class="gameCard">
+    <h3>Shattered Worlds</h3>
+    <p>Explore a near endless world.</p>
+    <button onclick="playGame('shatteredworlds.html')">Play Shattered worlds</button>
+  </div>
+
+  <div class="gameCard">
+    <h3>PANDACOIN.EXE</h3>
+    <p>Disclaimer:This is not an actual virus.</p>
+    <button onclick="playGame('PANDACOIN.EXE.html')">Play PANDACOIN.EXE</button>
+  </div>
+
+  <div class="gameCard">
+    <h3>Panda farm</h3>
+    <p>Explore a world with pandas</p>
+    <button onclick="playGame('Pandasim.html')">Play panda sim</button>
+  </div>
+
+  <div class="gameCard">
+    <h3>panda seige</h3>
+    <p>Win the battle of strategy, and pandas.</p>
+    <button onclick="playGame('pandasiege.html')">Play panda siege.</button>
+  </div>
+
+  <div class="gameCard">
+    <h3>Civilization game</h3>
+    <p>attack other kingdoms and help your civilization grow stronger (unfinished)</p>
+    <button onclick="playGame('Civgame.html')">Play civilization</button>
+  </div>
+
+  <div class="gameCard">
+    <h3>hunter vs. runner</h3>
+    <p>Explore the maze beat the game.</p>
+    <button onclick="playGame('hunterrunner.html')">Play hunter vs. runner</button>
+  </div>
+
+  <div class="gameCard">
+    <h3>Emerald Spire</h3>
+    <p>Climb the spire, dodge traps, and race the clock.</p>
+    <button onclick="playGame('emeraldspire.html')">Play Emerald spire</button>
+  </div>
+
+  <div class="gameCard">
+    <h3>Dungeon</h3>
+    <p>Procedural dungeon crawler with escalating difficulty.</p>
+    <button onclick="playGame('dungeon.html')">Play Dungeon</button>
+  </div>
+</div>
+
+<!-- GARDEN -->
+<div id="gardenTab" class="section">
+  <h2>Panda Garden</h2>
+  <p>Your panda hangs out here with whatever skin and furniture you’ve unlocked.</p>
+
+  <div class="infoRow">Current user: <span id="gardenUserLabel">None</span></div>
+  <div class="infoRow">PandaCoins: <span id="gardenCoinsLabel">0</span></div>
+  <div class="infoRow">Active skin: <span id="gardenSkinLabel">None</span></div>
+  <div class="infoRow">Furniture owned: <span id="gardenFurnitureLabel">0</span></div>
+
+  <div id="gardenWrapper">
+    <div id="cssPanda">
+      <div class="panda">
+        <div class="ear left"></div>
+        <div class="ear right"></div>
+        <div class="head"></div>
+        <div class="eye left"></div>
+        <div class="eye right"></div>
+        <div class="nose"></div>
+        <div class="body"></div>
+        <div class="arm left"></div>
+        <div class="arm right"></div>
+        <div class="leg left"></div>
+        <div class="leg right"></div>
+      </div>
+    </div>
+
+    <button id="inventoryButton" onclick="openInventory()">Inventory</button>
+    <canvas id="gardenCanvas" width="800" height="400"></canvas>
+  </div>
+</div>
+
+<!-- SCHOOL TAB -->
+<div id="schoolTab" class="section">
+  <h2>📚 Student Tools</h2>
+
+  <!-- FLASHCARD SYSTEM -->
+  <h3>Flashcards</h3>
+
+  <div style="margin-bottom:10px;">
+    <label><strong>Deck:</strong></label>
+    <select id="deckSelect" onchange="selectDeck(this.value)" style="min-width:160px;"></select>
+    <input id="newDeckName" placeholder="New deck name" style="width:160px;">
+    <button onclick="createDeck()">Create Deck</button>
+  </div>
+
+  <div style="margin-bottom:10px;">
+    <input id="fcFront" placeholder="Front (Question / Term)" style="width:45%;">
+    <input id="fcBack" placeholder="Back (Answer / Definition)" style="width:45%;">
+    <button onclick="addFlashcard()">Add Card</button>
+  </div>
+
+  <div id="flashcardList" style="margin-bottom:15px;"></div>
+
+  <div id="studyArea" style="border:1px solid #444; padding:10px; max-width:400px;">
+    <div style="margin-bottom:5px;">
+      <strong>Study mode</strong> — current deck: <span id="studyDeckName">None</span><br>
+      Progress: <span id="studyProgress">0 / 0</span>
+    </div>
+
+    <div id="studyCard" style="border:1px solid #666; padding:20px; text-align:center; min-height:80px; background:#111; cursor:pointer;"
+         onclick="flipStudyCard()">
+      <span id="studyCardText">Click "Start Study" to begin</span>
+    </div>
+
+    <div style="margin-top:10px; text-align:center;">
+      <button onclick="startStudy()">Start Study</button>
+      <button onclick="markStudyCard(true)">Got it</button>
+      <button onclick="markStudyCard(false)">Need review</button>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- BASIC CALCULATOR -->
+  <h3>Basic Calculator</h3>
+
+  <div style="width:220px; margin-bottom:15px;">
+    <input id="calcDisplay" style="width:100%; font-size:20px; text-align:right;" disabled>
+
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-top:5px;">
+      <button onclick="pressCalc('7')">7</button>
+      <button onclick="pressCalc('8')">8</button>
+      <button onclick="pressCalc('9')">9</button>
+      <button onclick="pressCalc('/')">÷</button>
+
+      <button onclick="pressCalc('4')">4</button>
+      <button onclick="pressCalc('5')">5</button>
+      <button onclick="pressCalc('6')">6</button>
+      <button onclick="pressCalc('*')">×</button>
+
+      <button onclick="pressCalc('1')">1</button>
+      <button onclick="pressCalc('2')">2</button>
+      <button onclick="pressCalc('3')">3</button>
+      <button onclick="pressCalc('-')">−</button>
+
+      <button onclick="pressCalc('0')">0</button>
+      <button onclick="pressCalc('.')">.</button>
+      <button onclick="calculate()">=</button>
+      <button onclick="pressCalc('+')">+</button>
+
+      <button onclick="clearCalc()" style="grid-column: span 4;">Clear</button>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- GRAPHING CALCULATOR -->
+  <h3>Graphing Calculator</h3>
+
+  <input id="graphInput" placeholder="f(x) = x*x" style="width:200px;">
+  <button onclick="plotGraph()">Plot</button>
+
+  <br><br>
+  <canvas id="graphCanvas" width="400" height="300" style="border:1px solid #555;"></canvas>
+
+  <!-- ORIGINAL SMALL CHRISTMAS TREE SECTION -->
+  <div id="christmasSection">
+    <h3>🎄 Christmas Tree</h3>
+    <p>Decorated tree with CSS ornaments. (tiny easter egg :D)</p>
+    <div id="christmasTreeWrapper">
+      <img id="christmasTree" src="christmastree.png" alt="Christmas Tree">
+      <div class="ornament red orn1"></div>
+      <div class="ornament blue orn2"></div>
+      <div class="ornament gold orn3"></div>
+      <div class="ornament green orn4"></div>
+      <div class="ornament red orn5"></div>
+      <div class="ornament gold orn6"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PANDAS (INVENTORY LIST VIEW) -->
+<div id="pandasTab" class="section">
+  <h2>Pandas</h2>
+  <p>Manage your pandas, rarities, and equipped skins.</p>
+
+  <div class="infoRow">Current user: <span id="pandasUserLabel">None</span></div>
+  <div class="infoRow">Active panda: <span id="pandasActiveLabel">None</span></div>
+
+  <h3 style="margin-top:20px;">Owned Pandas</h3>
+  <div class="panda-list" id="pandaList"></div>
+</div>
+
+<!-- SHOP -->
+<div id="shopTab" class="section">
+  <h2>Shop</h2>
+  <div class="infoRow">Current user: <span id="shopUserLabel">None</span></div>
+  <div class="infoRow">PandaCoins: <span id="shopCoinsLabel">0</span></div>
+
+  <h3 style="margin-top:20px;">Panda Skins</h3>
+  <div class="skin-list" id="skinList"></div>
+
+  <div class="crate-box">
+    <h3>Cosmetic Crate (Furniture)</h3>
+    <p>Open a crate for a chance at random furniture for your garden. Costs <strong>100 PandaCoins</strong>.</p>
+    <button class="crate-button" id="crateButton" onclick="openCrate()">Open Crate (100)</button>
+    <div id="crateMessage" class="msg"></div>
+  </div>
+</div>
+
+<!-- CASINO -->
+<div id="casinoTab" class="section">
+  <h2>Panda Casino – Slot Machine</h2>
+  <p>Each spin costs <strong>10 PandaCoins</strong>. Get all 5 symbols the same to win <strong>2000 PandaCoins</strong>.</p>
+
+  <div class="infoRow">Current user: <span id="casinoUserLabel">None</span></div>
+  <div class="infoRow">PandaCoins: <span id="casinoCoinsLabel">0</span></div>
+
+  <div id="slotMachine">
+    <div class="slot-header">NEON PANDA SLOTS</div>
+    <div class="slot-row">
+      <div class="slot-cell" id="slot0">?</div>
+      <div class="slot-cell" id="slot1">?</div>
+      <div class="slot-cell" id="slot2">?</div>
+      <div class="slot-cell" id="slot3">?</div>
+      <div class="slot-cell" id="slot4">?</div>
+    </div>
+    <button id="spinButton" class="casino-button" onclick="spinSlots()">SPIN (10)</button>
+    <div id="casinoMessage" class="msg"></div>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div id="searchUsersTab" class="section">
+  <h2>Search User Profiles</h2>
+
+  <input id="searchInput" placeholder="Enter username" style="padding:6px;">
+  <button onclick="searchUser()">Search</button>
+
+  <div id="searchResult" style="margin-top:15px;"></div>
+</div>
+
+<!-- CALENDAR TAB – BIG TREE + 25 ORNAMENTS -->
+<div id="calendarTab" class="section">
+  <h2>🎄 Christmas Calendar</h2>
+  <p>Click today’s ornament to claim your reward. Ornaments start shiny and turn dull after you claim them.</p>
+
+  <div class="infoRow">Current user: <span id="calendarUserLabel">None</span></div>
+  <div class="infoRow">PandaCoins: <span id="calendarCoinsLabel">0</span></div>
+
+  <div id="calendarTreeWrapper">
+    <img id="calendarTreeImg" src="christmastree.png" alt="Christmas Tree">
+
+    <!-- 25 ornaments, Christmas-themed colors -->
+    <div class="calendar-ornament red   cal-1"  data-day="1">1</div>
+    <div class="calendar-ornament green cal-2"  data-day="2">2</div>
+    <div class="calendar-ornament gold  cal-3"  data-day="3">3</div>
+    <div class="calendar-ornament red   cal-4"  data-day="4">4</div>
+    <div class="calendar-ornament green cal-5"  data-day="5">5</div>
+    <div class="calendar-ornament gold  cal-6"  data-day="6">6</div>
+    <div class="calendar-ornament red   cal-7"  data-day="7">7</div>
+    <div class="calendar-ornament green cal-8"  data-day="8">8</div>
+    <div class="calendar-ornament gold  cal-9"  data-day="9">9</div>
+    <div class="calendar-ornament red   cal-10" data-day="10">10</div>
+    <div class="calendar-ornament green cal-11" data-day="11">11</div>
+    <div class="calendar-ornament gold  cal-12" data-day="12">12</div>
+    <div class="calendar-ornament red   cal-13" data-day="13">13</div>
+    <div class="calendar-ornament green cal-14" data-day="14">14</div>
+    <div class="calendar-ornament gold  cal-15" data-day="15">15</div>
+    <div class="calendar-ornament red   cal-16" data-day="16">16</div>
+    <div class="calendar-ornament green cal-17" data-day="17">17</div>
+    <div class="calendar-ornament gold  cal-18" data-day="18">18</div>
+    <div class="calendar-ornament red   cal-19" data-day="19">19</div>
+    <div class="calendar-ornament green cal-20" data-day="20">20</div>
+    <div class="calendar-ornament gold  cal-21" data-day="21">21</div>
+    <div class="calendar-ornament red   cal-22" data-day="22">22</div>
+    <div class="calendar-ornament green cal-23" data-day="23">23</div>
+    <div class="calendar-ornament gold  cal-24" data-day="24">24</div>
+    <div class="calendar-ornament red   cal-25" data-day="25">25</div>
+  </div>
+
+  <div id="calendarInfo">
+    <strong>How it works:</strong>
+    <ul style="margin-top:6px; padding-left:20px;">
+      <li>Only today’s ornament is clickable.</li>
+      <li>Once you claim it, it turns dull and can’t be clicked again.</li>
+      <li>Most days give PandaCoins. Some days give special Christmas skins.</li>
+      <li>Day 25 unlocks the <strong>pandsnowman</strong> furniture for your garden.</li>
+    </ul>
+    <div id="calendarLegend">
+      Event runs in December. If it’s not December on your device, ornaments will be locked.
+    </div>
+  </div>
+
+  <div id="calendarMessage" class="msg"></div>
+</div>
+
+<!-- ACCOUNT -->
+<div id="accountTab" class="section">
+  <h2>Account</h2>
+  
+  <button onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSeYnORUaXdtncnE9KNUE_mVvzjw4fOH1lpAdu_NrYp1mhLsOw/viewform?usp=header', '_blank')"
+          style="padding: 10px 20px; font-size: 18px; border-radius: 8px; cursor: pointer;">
+    ⭐ Rate the Game
+  </button>
+
+  <p>Log in or sign up. Your PandaCoins, skins, pandas, and furniture are saved on this device.</p>
+
+  <div class="account-box">
+    <label>Username</label>
+    <input type="text" id="usernameInput" placeholder="Enter username">
+
+    <label>Password</label>
+    <input type="password" id="passwordInput" placeholder="Enter password">
+
+    <button class="login-btn" onclick="login()">Log In</button>
+    <button class="signup-btn" onclick="signup()">Sign Up</button>
+    <button class="logout-btn" onclick="logout()">Log Out</button>
+
+    <div class="small-note">
+      Note: Accounts and data are stored locally in this browser.
+    </div>
+
+    <div id="accountMessage" class="msg"></div>
+  </div>
+
+  <div class="account-box" style="margin-top:20px;">
+    <h3>Current Profile</h3>
+    <div>Username: <span id="accountUserLabel">None</span></div>
+    <div>PandaCoins: <span id="accountCoinsLabel">0</span></div>
+    <div>Owned skins: <span id="accountSkinsLabel">0</span></div>
+    <div>Furniture: <span id="accountFurnitureLabel">0</span></div>
+    <div>Active skin: <span id="accountSkinLabel">None</span></div>
+    <div>Owned pandas: <span id="accountPandasLabel">0</span></div>
+    <div>Active panda: <span id="accountActivePandaLabel">None</span></div>
+  </div>
+</div>
+
+<!-- QUESTS -->
+<div id="questsTab" class="section">
+  <h2>Daily Quests</h2>
+  <p>Complete quests to earn <strong>20 PandaCoins</strong>. Quests reset every day.</p>
+
+  <div class="infoRow">Current user: <span id="questsUserLabel">None</span></div>
+  <div class="infoRow">PandaCoins: <span id="questsCoinsLabel">0</span></div>
+
+  <div id="questList" style="margin-top:20px;"></div>
+  <div id="questMessage" class="msg"></div>
+</div>
+
+<!-- PANDA SIMULATOR -->
+<div id="simulatorTab" class="section">
+  <h2>Panda Simulator</h2>
+  <p>Earn PandaCoins slowly by clicking your panda. This mode is intentionally hard.</p>
+
+  <div class="infoRow">Current user: <span id="simUserLabel">None</span></div>
+  <div class="infoRow">PandaCoins: <span id="simCoinsLabel">0</span></div>
+
+  <div style="margin-top:20px; text-align:center;">
+    <canvas id="simCanvas" width="300" height="300"
+            style="background:#222; border:2px solid #444; border-radius:10px; cursor:pointer;"></canvas>
+
+    <p style="margin-top:10px; opacity:0.8;">Click the panda to earn coins.</p>
+    <div id="simMessage" class="msg"></div>
+  </div>
+</div>
+
+<script>
+function openTab(tabName) {
+  const sections = document.getElementsByClassName("section");
+  for (let s of sections) {
+    s.style.display = "none";
+  }
+  document.getElementById(tabName).style.display = "block";
+}
+
+/* BASIC TAB SWITCHING */
+function showTab(id, btn) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("activeTab"));
+  btn.classList.add("activeTab");
+
+  refreshAllLabels();
+
+  if (id === "questsTab") {
+    renderQuests();
+  }
+  if (id === "simulatorTab") {
+    updateSimulatorUI();
+  }
+  if (id === "calendarTab") {
+    updateCalendarUI();
+  }
+
+  // quest triggers
+  if (id === "gardenTab") {
+    completeQuest("Open Panda Garden");
+  }
+  if (id === "shopTab") {
+    completeQuest("Open the shop");
+  }
+}
+
+/* VISIT COUNTER */
+const VISIT_KEY = "panda2am_total_visits";
+function updateVisitCounter() {
+  let visits = parseInt(localStorage.getItem(VISIT_KEY)) || 0;
+  visits++;
+  localStorage.setItem(VISIT_KEY, visits);
+  document.getElementById("visitCounter").textContent = "Visits: " + visits;
+}
+updateVisitCounter();
+
+/* USER SYSTEM */
+const STORAGE_KEY = "panda2am_users_v1";
+let users = {};
+let currentUser = null;
+
+function loadUsers() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) { 
+    users = {}; 
+    return; 
+  }
+  try { 
+    users = JSON.parse(raw); 
+  } catch { 
+    users = {}; 
+  }
+}
+
+function saveUsers() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+}
+
+/* GLOBAL FOR IFRAMES */
+window.users = users;
+window.currentUser = currentUser;
+window.saveUsers = saveUsers;
+window.loadUsers = loadUsers;
+
+function ensureUserStructure(user) {
+  if (typeof user.coins !== "number") user.coins = 0;
+  if (!Array.isArray(user.skinsOwned)) user.skinsOwned = ["classic"];
+  if (!user.activeSkin) user.activeSkin = "classic";
+  if (!Array.isArray(user.furnitureOwned)) user.furnitureOwned = [];
+  if (!Array.isArray(user.furniturePlaced)) user.furniturePlaced = [];
+  if (!Array.isArray(user.pandas)) {
+    user.pandas = [{
+      name: "Starter Panda",
+      rarity: "Common",
+      value: 100,
+      skin: "classic"
+    }];
+  }
+  if (typeof user.activePandaIndex !== "number") user.activePandaIndex = 0;
+
+  if (!user.dailyQuests) user.dailyQuests = [];
+  if (!user.questDate) user.questDate = "";
+
+  // time-based quest tracking
+  if (!user.playDate) user.playDate = "";
+  if (typeof user.playSecondsToday !== "number") user.playSecondsToday = 0;
+
+  if (!user.walkDate) user.walkDate = "";
+  if (typeof user.walkMsToday !== "number") user.walkMsToday = 0;
+
+  // simulator daily limit
+  if (!user.simDate) user.simDate = "";
+  if (typeof user.simCoinsToday !== "number") user.simCoinsToday = 0;
+
+  // CHRISTMAS CALENDAR DATA
+  if (!user.christmasEvent) {
+    user.christmasEvent = {
+      year: new Date().getFullYear(),
+      claimed: {} // { "1": true, "2": true, ... }
+    };
+  }
+}
+
+/* COIN COUNTER */
+function updateCoinCounter() {
+  if (!currentUser || !users[currentUser]) {
+    document.getElementById("coinCounter").innerHTML =
+      `<div class="coinIcon"></div> PandaCoins: 0`;
+    return;
+  }
+  document.getElementById("coinCounter").innerHTML =
+    `<div class="coinIcon"></div> PandaCoins: ${users[currentUser].coins}`;
+}
+
+/* LABEL REFRESH */
+function refreshAllLabels() {
+  if (!currentUser || !users[currentUser]) {
+    document.getElementById("gardenUserLabel").textContent = "None";
+    document.getElementById("gardenCoinsLabel").textContent = "0";
+    document.getElementById("gardenSkinLabel").textContent = "None";
+    document.getElementById("gardenFurnitureLabel").textContent = "0";
+
+    document.getElementById("shopUserLabel").textContent = "None";
+    document.getElementById("shopCoinsLabel").textContent = "0";
+
+    document.getElementById("casinoUserLabel").textContent = "None";
+    document.getElementById("casinoCoinsLabel").textContent = "0";
+
+    document.getElementById("accountUserLabel").textContent = "None";
+    document.getElementById("accountCoinsLabel").textContent = "0";
+    document.getElementById("accountSkinsLabel").textContent = "0";
+    document.getElementById("accountFurnitureLabel").textContent = "0";
+    document.getElementById("accountSkinLabel").textContent = "None";
+    document.getElementById("accountPandasLabel").textContent = "0";
+    document.getElementById("accountActivePandaLabel").textContent = "None";
+
+    document.getElementById("pandasUserLabel").textContent = "None";
+    document.getElementById("pandasActiveLabel").textContent = "None";
+
+    document.getElementById("questsUserLabel").textContent = "None";
+    document.getElementById("questsCoinsLabel").textContent = "0";
+    const questList = document.getElementById("questList");
+    if (questList) questList.innerHTML = "";
+    const questMessage = document.getElementById("questMessage");
+    if (questMessage) questMessage.textContent = "";
+
+    document.getElementById("simUserLabel").textContent = "None";
+    document.getElementById("simCoinsLabel").textContent = "0";
+    const simMessage = document.getElementById("simMessage");
+    if (simMessage) simMessage.textContent = "";
+
+    document.getElementById("calendarUserLabel").textContent = "None";
+    document.getElementById("calendarCoinsLabel").textContent = "0";
+
+    loadSkinShop();
+    renderPandaList();
+    return;
+  }
+
+  const u = users[currentUser];
+  ensureUserStructure(u);
+
+  document.getElementById("gardenUserLabel").textContent = currentUser;
+  document.getElementById("gardenCoinsLabel").textContent = u.coins;
+  document.getElementById("gardenSkinLabel").textContent = u.activeSkin;
+  document.getElementById("gardenFurnitureLabel").textContent = u.furnitureOwned.length;
+
+  document.getElementById("shopUserLabel").textContent = currentUser;
+  document.getElementById("shopCoinsLabel").textContent = u.coins;
+
+  document.getElementById("casinoUserLabel").textContent = currentUser;
+  document.getElementById("casinoCoinsLabel").textContent = u.coins;
+
+  document.getElementById("accountUserLabel").textContent = currentUser;
+  document.getElementById("accountCoinsLabel").textContent = u.coins;
+  document.getElementById("accountSkinsLabel").textContent = u.skinsOwned.length;
+  document.getElementById("accountFurnitureLabel").textContent = u.furnitureOwned.length;
+  document.getElementById("accountSkinLabel").textContent = u.activeSkin;
+  document.getElementById("accountPandasLabel").textContent = u.pandas.length;
+  document.getElementById("accountActivePandaLabel").textContent =
+    u.pandas[u.activePandaIndex] ? u.pandas[u.activePandaIndex].name : "None";
+
+  document.getElementById("pandasUserLabel").textContent = currentUser;
+  document.getElementById("pandasActiveLabel").textContent =
+    u.pandas[u.activePandaIndex] ? u.pandas[u.activePandaIndex].name : "None";
+
+  document.getElementById("questsUserLabel").textContent = currentUser;
+  document.getElementById("questsCoinsLabel").textContent = u.coins;
+
+  document.getElementById("simUserLabel").textContent = currentUser;
+  document.getElementById("simCoinsLabel").textContent = u.coins;
+
+  document.getElementById("calendarUserLabel").textContent = currentUser;
+  document.getElementById("calendarCoinsLabel").textContent = u.coins;
+
+  loadSkinShop();
+  renderPandaList();
+}
+
+/* CSS PANDA SKIN SYNC */
+function applyCssPandaSkin(skinId) {
+  const root = document.documentElement;
+
+  const skinsColors = {
+    classic: ["#ffffff", "#000000"],
+    midnight: ["#0a0f24", "#7be0b5"],
+    frost: ["#e0f7ff", "#4db6e6"],
+    forest: ["#e6ffe6", "#2e7d32"],
+    sand: ["#fff3e0", "#bf8f53"],
+    ocean: ["#e0f7fa", "#0277bd"],
+    rose: ["#ffe4ec", "#c2185b"],
+    stone: ["#e0e0e0", "#616161"],
+    cocoa: ["#f3e0d7", "#6d4c41"],
+    cloud: ["#ffffff", "#90a4ae"],
+
+    inferno: ["#ffe1d6", "#ff5733"],
+    emerald: ["#d6ffe8", "#00c26b"],
+    sapphire: ["#d6e8ff", "#3b6cff"],
+    ruby: ["#ffe0e6", "#d1003f"],
+    amethyst: ["#f3e5f5", "#8e24aa"],
+    topaz: ["#fff8e1", "#ffb300"],
+    copper: ["#ffe0b2", "#8d6e63"],
+    neonblue: ["#e3f2fd", "#00b0ff"],
+    neonpink: ["#fce4ec", "#ff4081"],
+    neongreen: ["#e8f5e9", "#00e676"],
+
+    galaxy: ["#1a1036", "#9b59b6"],
+    crystal: ["#eaffff", "#00d4d4"],
+    storm: ["#eceff1", "#455a64"],
+    shadow: ["#f5f5f5", "#212121"],
+    aurora: ["#e8f5e9", "#66bb6a"],
+    cyber: ["#e0f7fa", "#00e5ff"],
+    toxic: ["#f9fbe7", "#9e9d24"],
+    solar: ["#fff3e0", "#ff9800"],
+    icefire: ["#e3f2fd", "#ff7043"],
+    prism: ["#ffffff", "#7e57c2"],
+
+    golden: ["#fff7cc", "#f5d76e"],
+    rainbow: ["#ffffff", "#ff00ff"],
+    obsidian: ["#eceff1", "#263238"],
+    plasma: ["#f3e5f5", "#d500f9"],
+    void: ["#f5f5f5", "#000000"],
+    spirit: ["#e8eaf6", "#5c6bc0"],
+    sakura: ["#ffebee", "#ec407a"],
+    pharaoh: ["#fff8e1", "#ffb300"],
+    samurai: ["#ffebee", "#b71c1c"],
+    dragonfire: ["#fff3e0", "#e64a19"],
+
+    glitch: ["#ffffff", "#00ffea"],
+    cosmic: ["#1a1036", "#ff00ff"],
+    eternalflame: ["#fff3e0", "#ff5722"],
+    celestial: ["#e3f2fd", "#3f51b5"],
+    chrono: ["#ede7f6", "#5e35b1"],
+    quantum: ["#e0f7fa", "#00bcd4"],
+    mythril: ["#eceff1", "#90a4ae"],
+    divine: ["#fffde7", "#fdd835"],
+    eclipse: ["#f5f5f5", "#212121"],
+    lightpanda: ["#ffffff", "#ffeb3b"],
+
+    /* CHRISTMAS EVENT SKINS */
+    snowfall: ["#f0f8ff", "#90caf9"],
+    candycane: ["#ffffff", "#e53935"],
+    holly: ["#e8f5e9", "#2e7d32"],
+    starlight: ["#fff8e1", "#ffca28"]
+  };
+
+  if (skinsColors[skinId]) {
+    root.style.setProperty("--panda-main", skinsColors[skinId][0]);
+    root.style.setProperty("--panda-accent", skinsColors[skinId][1]);
+  }
+}
+
+/* PANDA MOVEMENT */
+const pandaEl = document.getElementById("cssPanda");
+let panda = {
+  x: 200,
+  y: 220,
+  speed: 1.2,
+  dirX: 1,
+  dirY: 0,
+  rolling: false
+};
+const inventoryZone = {
+  x1: 800 - 150,
+  y1: 400 - 80,
+  x2: 800,
+  y2: 400
+};
+
+function trackPandaWalk(deltaMs) {
+  if (!currentUser || !users[currentUser]) return;
+  const u = users[currentUser];
+  ensureUserStructure(u);
+
+  resetWalkIfNewDay(u);
+  u.walkMsToday += deltaMs;
+  if (u.walkMsToday >= 5 * 60 * 1000) {
+    completeQuest("Walk your panda for 5 minutes");
+  }
+  saveUsers();
+}
+
+function movePanda() {
+  if (!currentUser || !users[currentUser]) return;
+
+  if (Math.random() < 0.01) {
+    panda.dirX = (Math.random() * 2 - 1);
+    panda.dirY = (Math.random() * 2 - 1);
+  }
+
+  if (!panda.rolling && Math.random() < 0.002) {
+    panda.rolling = true;
+    pandaEl.style.transition = "transform 0.3s linear";
+    pandaEl.style.transform += " rotate(360deg)";
+    setTimeout(() => panda.rolling = false, 300);
+  }
+
+  let nx = panda.x + panda.dirX * panda.speed;
+  let ny = panda.y + panda.dirY * panda.speed;
+
+  if (nx < 0 || nx > 700) panda.dirX *= -1;
+  if (ny < 0 || ny > 260) panda.dirY *= -1;
+
+  if (nx > inventoryZone.x1 && ny > inventoryZone.y1) {
+    panda.dirX *= -1;
+    panda.dirY *= -1;
+  }
+
+  panda.x += panda.dirX * panda.speed;
+  panda.y += panda.dirY * panda.speed;
+
+  pandaEl.style.left = panda.x + "px";
+  pandaEl.style.top = panda.y + "px";
+
+  const moving = Math.abs(panda.dirX) > 0.01 || Math.abs(panda.dirY) > 0.01;
+  if (moving) {
+    trackPandaWalk(30);
+  }
+}
+setInterval(movePanda, 30);
+
+/* FURNITURE */
+let placingMode = false;
+let selectedFurniture = null;
+const gardenCanvas = document.getElementById("gardenCanvas");
+const gctx = gardenCanvas.getContext("2d");
+
+function openInventory() {
+  if (!currentUser || !users[currentUser]) {
+    alert("Log in first to place furniture.");
+    return;
+  }
+  const u = users[currentUser];
+  if (!u.furnitureOwned.length) {
+    alert("You don't own any furniture yet. Open crates in the Shop!");
+    return;
+  }
+  let list = "Choose furniture to place:\n\n";
+  u.furnitureOwned.forEach((f, i) => {
+    list += `${i + 1}. ${f}\n`;
+  });
+  let choice = prompt(list);
+  if (!choice) return;
+  let index = parseInt(choice) - 1;
+  if (index < 0 || index >= u.furnitureOwned.length) return;
+  selectedFurniture = u.furnitureOwned[index];
+  placingMode = true;
+  alert("Click on the garden to place your furniture.");
+}
+
+gardenCanvas.addEventListener("click", e => {
+  if (!placingMode || !currentUser || !users[currentUser]) return;
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  users[currentUser].furniturePlaced.push({ id: selectedFurniture, x, y });
+  saveUsers();
+  drawFurniture();
+  placingMode = false;
+
+  completeQuest("Place furniture in your garden");
+});
+
+function drawFurniture() {
+  gctx.clearRect(0, 0, 800, 400);
+  if (!currentUser || !users[currentUser]) return;
+  const placed = users[currentUser].furniturePlaced;
+  placed.forEach(item => {
+    if (item.id === "pandsnowman") {
+      // simple snow-panda statue
+      const cx = item.x;
+      const cy = item.y;
+      gctx.save();
+      gctx.translate(cx, cy);
+
+      // body
+      gctx.fillStyle = "#ffffff";
+      gctx.beginPath();
+      gctx.arc(0, 18, 18, 0, Math.PI * 2);
+      gctx.fill();
+
+      // head
+      gctx.beginPath();
+      gctx.arc(0, 0, 14, 0, Math.PI * 2);
+      gctx.fill();
+
+      // ears
+      gctx.fillStyle = "#cccccc";
+      gctx.beginPath();
+      gctx.arc(-8, -10, 4, 0, Math.PI * 2);
+      gctx.arc(8, -10, 4, 0, Math.PI * 2);
+      gctx.fill();
+
+      // eyes
+      gctx.fillStyle = "#000000";
+      gctx.beginPath();
+      gctx.arc(-4, -2, 2, 0, Math.PI * 2);
+      gctx.arc(4, -2, 2, 0, Math.PI * 2);
+      gctx.fill();
+
+      // nose
+      gctx.beginPath();
+      gctx.arc(0, 2, 2, 0, Math.PI * 2);
+      gctx.fill();
+
+      // scarf – thin red/green stripes, short and tight
+      gctx.lineWidth = 4;
+      gctx.strokeStyle = "#e53935";
+      gctx.beginPath();
+      gctx.moveTo(-10, 8);
+      gctx.lineTo(10, 8);
+      gctx.stroke();
+      gctx.strokeStyle = "#43a047";
+      gctx.beginPath();
+      gctx.moveTo(-10, 11);
+      gctx.lineTo(10, 11);
+      gctx.stroke();
+
+      // tail straight down
+      gctx.strokeStyle = "#ffffff";
+      gctx.lineWidth = 3;
+      gctx.beginPath();
+      gctx.moveTo(0, 30);
+      gctx.lineTo(0, 38);
+      gctx.stroke();
+
+      gctx.restore();
+    } else {
+      gctx.fillStyle = "#ffffff";
+      gctx.fillRect(item.x - 16, item.y - 16, 32, 32);
+      gctx.fillStyle = "#000000";
+      gctx.fillText(item.id, item.x - 16, item.y - 20);
+    }
+  });
+}
+
+/* SKINS DATA */
+const allSkins = {
+  classic:   { price: 0,   rarity: "Common",    eventOnly:false },
+  midnight:  { price: 50,  rarity: "Common",    eventOnly:false },
+  frost:     { price: 50,  rarity: "Common",    eventOnly:false },
+  forest:    { price: 50,  rarity: "Common",    eventOnly:false },
+  sand:      { price: 50,  rarity: "Common",    eventOnly:false },
+  ocean:     { price: 50,  rarity: "Common",    eventOnly:false },
+  rose:      { price: 50,  rarity: "Common",    eventOnly:false },
+  stone:     { price: 50,  rarity: "Common",    eventOnly:false },
+  cocoa:     { price: 50,  rarity: "Common",    eventOnly:false },
+  cloud:     { price: 50,  rarity: "Common",    eventOnly:false },
+
+  inferno:   { price: 150, rarity: "Rare",      eventOnly:false },
+  emerald:   { price: 150, rarity: "Rare",      eventOnly:false },
+  sapphire:  { price: 150, rarity: "Rare",      eventOnly:false },
+  ruby:      { price: 150, rarity: "Rare",      eventOnly:false },
+  amethyst:  { price: 150, rarity: "Rare",      eventOnly:false },
+  topaz:     { price: 150, rarity: "Rare",      eventOnly:false },
+  copper:    { price: 150, rarity: "Rare",      eventOnly:false },
+  neonblue:  { price: 150, rarity: "Rare",      eventOnly:false },
+  neonpink:  { price: 150, rarity: "Rare",      eventOnly:false },
+  neongreen: { price: 150, rarity: "Rare",      eventOnly:false },
+
+  galaxy:    { price: 500, rarity: "Epic",      eventOnly:false },
+  crystal:   { price: 500, rarity: "Epic",      eventOnly:false },
+  storm:     { price: 500, rarity: "Epic",      eventOnly:false },
+  shadow:    { price: 500, rarity: "Epic",      eventOnly:false },
+  aurora:    { price: 500, rarity: "Epic",      eventOnly:false },
+  cyber:     { price: 500, rarity: "Epic",      eventOnly:false },
+  toxic:     { price: 500, rarity: "Epic",      eventOnly:false },
+  solar:     { price: 500, rarity: "Epic",      eventOnly:false },
+  icefire:   { price: 500, rarity: "Epic",      eventOnly:false },
+  prism:     { price: 500, rarity: "Epic",      eventOnly:false },
+
+  golden:    { price: 1500, rarity: "Legendary", eventOnly:false },
+  rainbow:   { price: 1500, rarity: "Legendary", eventOnly:false },
+  obsidian:  { price: 1500, rarity: "Legendary", eventOnly:false },
+  plasma:    { price: 1500, rarity: "Legendary", eventOnly:false },
+  void:      { price: 1500, rarity: "Legendary", eventOnly:false },
+  spirit:    { price: 1500, rarity: "Legendary", eventOnly:false },
+  sakura:    { price: 1500, rarity: "Legendary", eventOnly:false },
+  pharaoh:   { price: 1500, rarity: "Legendary", eventOnly:false },
+  samurai:   { price: 1500, rarity: "Legendary", eventOnly:false },
+  dragonfire:{ price: 1500, rarity: "Legendary", eventOnly:false },
+
+  glitch:    { price: 3000, rarity: "Mythic",    eventOnly:false },
+  cosmic:    { price: 3000, rarity: "Mythic",    eventOnly:false },
+  eternalflame:{ price:3000, rarity:"Mythic",    eventOnly:false },
+  celestial: { price: 3000, rarity: "Mythic",    eventOnly:false },
+  chrono:    { price: 3000, rarity: "Mythic",    eventOnly:false },
+  quantum:   { price: 3000, rarity: "Mythic",    eventOnly:false },
+  mythril:   { price: 3000, rarity: "Mythic",    eventOnly:false },
+  divine:    { price: 3000, rarity: "Mythic",    eventOnly:false },
+  eclipse:   { price: 3000, rarity: "Mythic",    eventOnly:false },
+  lightpanda:{ price: 3000, rarity: "Mythic",    eventOnly:false },
+
+  /* CHRISTMAS EVENT SKINS – eventOnly true */
+  snowfall:  { price: 0, rarity: "Epic", eventOnly:true },
+  candycane: { price: 0, rarity: "Epic", eventOnly:true },
+  holly:     { price: 0, rarity: "Epic", eventOnly:true },
+  starlight: { price: 0, rarity: "Epic", eventOnly:true }
+};
+
+function rarityClass(r) {
+  if (r === "Common") return "rarity-common";
+  if (r === "Rare") return "rarity-rare";
+  if (r === "Epic") return "rarity-epic";
+  if (r === "Legendary") return "rarity-legendary";
+  if (r === "Mythic") return "rarity-mythic";
+  return "";
+}
+
+/* SKIN SHOP */
+function loadSkinShop() {
+  const skinList = document.getElementById("skinList");
+  skinList.innerHTML = "";
+  if (!currentUser || !users[currentUser]) return;
+  const u = users[currentUser];
+  ensureUserStructure(u);
+
+  Object.keys(allSkins).forEach(id => {
+    const data = allSkins[id];
+    if (data.eventOnly) return;
+
+    const owned = u.skinsOwned.includes(id);
+    const div = document.createElement("div");
+    div.className = "skinItem";
+
+    const left = document.createElement("div");
+    left.innerHTML = `<div class="skinName">${id}</div>
+      <div class="skinRarity ${rarityClass(data.rarity)}">${data.rarity} — ${data.price} coins</div>`;
+
+    const btn = document.createElement("button");
+    if (owned) {
+      btn.textContent = "Owned";
+      btn.disabled = true;
+    } else {
+      btn.textContent = "Buy (" + data.price + ")";
+      btn.onclick = () => buySkin(id, data.price);
+    }
+
+    div.appendChild(left);
+    div.appendChild(btn);
+    skinList.appendChild(div);
+  });
+}
+
+function buySkin(skin, price) {
+  if (!currentUser || !users[currentUser]) return;
+  const u = users[currentUser];
+  ensureUserStructure(u);
+  if (u.skinsOwned.includes(skin)) return;
+  if (u.coins < price) {
+    alert("Not enough PandaCoins!");
+    return;
+  }
+  u.coins -= price;
+  u.skinsOwned.push(skin);
+  u.activeSkin = skin;
+  saveUsers();
+  updateCoinCounter();
+  refreshAllLabels();
+  applyCssPandaSkin(skin);
+
+  completeQuest("Equip a new skin");
+}
+
+/* CRATE (simple random furniture) */
+function openCrate() {
+  if (!currentUser || !users[currentUser]) return;
+  const u = users[currentUser];
+  ensureUserStructure(u);
+  const msg = document.getElementById("crateMessage");
+
+  if (u.coins < 100) {
+    msg.textContent = "Not enough PandaCoins.";
+    msg.className = "msg error";
+    return;
+  }
+
+  u.coins -= 100;
+  const furnitureNames = ["Chair", "Table", "Lamp", "Rug", "Statue", "Bench", "Rock", "Bush"];
+  const item = furnitureNames[Math.floor(Math.random() * furnitureNames.length)];
+  u.furnitureOwned.push(item);
+
+  saveUsers();
+  updateCoinCounter();
+  refreshAllLabels();
+
+  msg.textContent = "You got: " + item;
+  msg.className = "msg success";
+}
+
+/* PANDAS LIST */
+function renderPandaList() {
+  const list = document.getElementById("pandaList");
+  list.innerHTML = "";
+  if (!currentUser || !users[currentUser]) return;
+  const u = users[currentUser];
+  ensureUserStructure(u);
+
+  u.pandas.forEach((pandaObj, index) => {
+    const div = document.createElement("div");
+    div.className = "pandaItem";
+
+    const info = document.createElement("div");
+    info.className = "pandaInfo";
+    info.innerHTML = `
+      <div>${pandaObj.name}</div>
+      <div class="pandaRarity ${rarityClass(pandaObj.rarity)}">${pandaObj.rarity} — value ${pandaObj.value}</div>
+      <div>Skin: ${pandaObj.skin}</div>
+    `;
+
+    const actions = document.createElement("div");
+
+    const equipPandaBtn = document.createElement("button");
+    equipPandaBtn.textContent = "Set Active";
+    equipPandaBtn.onclick = () => {
+      u.activePandaIndex = index;
+      saveUsers();
+      refreshAllLabels();
+
+      completeQuest("Switch your active panda");
+    };
+
+    const equipSkinBtn = document.createElement("button");
+    equipSkinBtn.textContent = "Equip Skin";
+    equipSkinBtn.onclick = () => {
+      if (!u.skinsOwned.length) {
+        alert("You don't own any skins yet.");
+        return;
+      }
+
+      const masterList = [
+        "classic","midnight","frost","forest","sand","ocean","rose","stone","cocoa","cloud",
+        "inferno","emerald","sapphire","ruby","amethyst","topaz","copper","neonblue","neonpink","neongreen",
+        "galaxy","crystal","storm","shadow","aurora","cyber","toxic","solar","icefire","prism",
+        "golden","rainbow","obsidian","plasma","void","spirit","sakura","pharaoh","samurai","dragonfire",
+        "glitch","cosmic","eternalflame","celestial","chrono","quantum","mythril","divine","eclipse","lightpanda",
+        "snowfall","candycane","holly","starlight"
+      ];
+
+      let listStr = "Choose skin for this panda:\n\n";
+      let row = "";
+      let count = 0;
+
+      masterList.forEach(skin => {
+        if (u.skinsOwned.includes(skin)) {
+          count++;
+          row += `${count}. ${skin}, `;
+          if (count % 5 === 0) {
+            listStr += "    " + row + "\n";
+            row = "";
+          }
+        }
+      });
+
+      if (row.length > 0) {
+        listStr += "    " + row + "\n";
+      }
+
+      const choice = prompt(listStr);
+      if (!choice) return;
+
+      const idx = parseInt(choice) - 1;
+      if (idx < 0 || idx >= masterList.length) return;
+
+      const chosen = masterList[idx];
+      if (!u.skinsOwned.includes(chosen)) return;
+
+      pandaObj.skin = chosen;
+      u.activeSkin = chosen;
+      saveUsers();
+      applyCssPandaSkin(chosen);
+      refreshAllLabels();
+
+      completeQuest("Equip a new skin");
+    };
+
+    actions.appendChild(equipPandaBtn);
+    actions.appendChild(equipSkinBtn);
+
+    div.appendChild(info);
+    div.appendChild(actions);
+    list.appendChild(div);
+  });
+}
+
+/* SEARCH USER */
+function searchUser() {
+  let username = document.getElementById("searchInput").value.trim();
+  const resultBox = document.getElementById("searchResult");
+
+  if (!username) {
+    resultBox.innerHTML = "<p>Please enter a username.</p>";
+    return;
+  }
+
+  const accounts = JSON.parse(localStorage.getItem("panda2am_users_v1")) || {};
+  let user = accounts[username];
+
+  if (!user) {
+    const lower = username.toLowerCase();
+    const key = Object.keys(accounts).find(k => k.toLowerCase() === lower);
+    if (key) {
+      user = accounts[key];
+      username = key;
+    }
+  }
+
+  if (!user) {
+    resultBox.innerHTML = "<p>User not found.</p>";
+    return;
+  }
+
+  resultBox.innerHTML = `
+    <div style="padding:10px; border:1px solid #ccc; border-radius:8px;">
+      <h3>${username}</h3>
+
+      <p><strong>PandaCoins:</strong> ${user.coins}</p>
+      <p><strong>Active Panda:</strong> ${user.pandas?.[user.activePandaIndex]?.name || "None"}</p>
+      <p><strong>Active Skin:</strong> ${user.activeSkin || "None"}</p>
+
+      <h4>Pandas Owned:</h4>
+      <ul>
+        ${(user.pandas || []).map(p => `<li>${p.name}</li>`).join("")}
+      </ul>
+
+      <h4>Skins Owned:</h4>
+      <ul>
+        ${(user.skinsOwned || []).map(s => `<li>${s}</li>`).join("")}
+      </ul>
+    </div>
+  `;
+
+  completeQuest("View another user's profile");
+}
+
+/* LOGIN / SIGNUP / LOGOUT */
+function login() {
+  const uName = document.getElementById("usernameInput").value.trim();
+  const p = document.getElementById("passwordInput").value;
+  const msg = document.getElementById("accountMessage");
+
+  if (!uName || !p) {
+    msg.textContent = "Enter username and password.";
+    msg.className = "msg error";
+    return;
+  }
+
+  if (!users[uName] || users[uName].password !== btoa(p)) {
+    msg.textContent = "Invalid username or password.";
+    msg.className = "msg error";
+    return;
+  }
+
+  currentUser = uName;
+  window.currentUser = currentUser;
+
+  ensureUserStructure(users[uName]);
+  saveUsers();
+
+  msg.textContent = "Logged in!";
+  msg.className = "msg success";
+
+  updateCoinCounter();
+  applyCssPandaSkin(users[uName].activeSkin);
+  drawFurniture();
+  refreshAllLabels();
+  updateCalendarUI();
+}
+
+function signup() {
+  const uName = document.getElementById("usernameInput").value.trim();
+  const p = document.getElementById("passwordInput").value;
+  const msg = document.getElementById("accountMessage");
+
+  if (!uName || !p) {
+    msg.textContent = "Enter username and password.";
+    msg.className = "msg error";
+    return;
+  }
+  if (users[uName]) {
+    msg.textContent = "Username already exists.";
+    msg.className = "msg error";
+    return;
+  }
+
+  users[uName] = {
+    password: btoa(p),
+    coins: 0,
+    skinsOwned: ["classic"],
+    activeSkin: "classic",
+    furnitureOwned: [],
+    furniturePlaced: [],
+    pandas: [{
+      name: "Starter Panda",
+      rarity: "Common",
+      value: 100,
+      skin: "classic"
+    }],
+    activePandaIndex: 0,
+    dailyQuests: [],
+    questDate: "",
+    playDate: "",
+    playSecondsToday: 0,
+    walkDate: "",
+    walkMsToday: 0,
+    simDate: "",
+    simCoinsToday: 0,
+    christmasEvent: {
+      year: new Date().getFullYear(),
+      claimed: {}
+    }
+  };
+
+  saveUsers();
+  currentUser = uName;
+  msg.textContent = "Account created and logged in! By the way, you can only log in on the device you made the account on. (we're still working on it)";
+  msg.className = "msg success";
+
+  updateCoinCounter();
+  applyCssPandaSkin("classic");
+  drawFurniture();
+  refreshAllLabels();
+  updateCalendarUI();
+}
+
+function logout() {
+  currentUser = null;
+  const msg = document.getElementById("accountMessage");
+  msg.textContent = "Logged out.";
+  msg.className = "msg success";
+  updateCoinCounter();
+  drawFurniture();
+  refreshAllLabels();
+  updateCalendarUI();
+}
+
+/* QUEST SYSTEM */
+const QUESTS = [
+  "Play for 1 hour",
+  "Open Panda Garden",
+  "Equip a new skin",
+  "Spin the slot machine",
+  "Place furniture in your garden",
+  "View another user's profile",
+  "Play any game",
+  "Walk your panda for 5 minutes",
+  "Open the shop",
+  "Switch your active panda"
+];
+
+function completeQuest(taskName) {
+  if (!currentUser || !users[currentUser]) return;
+  const u = users[currentUser];
+  ensureUserStructure(u);
+
+  const q = u.dailyQuests.find(q => q.task === taskName);
+  if (!q || q.done) return;
+
+  q.done = true;
+  saveUsers();
+}
+
+function generateDailyQuests(user) {
+  const today = new Date().toDateString();
+
+  if (user.questDate === today && user.dailyQuests && user.dailyQuests.length) return;
+
+  user.questDate = today;
+  user.dailyQuests = QUESTS
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3)
+    .map(q => ({
+      task: q,
+      done: false,
+      claimed: false
+    }));
+}
+
+function renderQuests() {
+  const box = document.getElementById("questList");
+  const msg = document.getElementById("questMessage");
+
+  if (!currentUser || !users[currentUser]) {
+    box.innerHTML = "<p>Log in to see quests.</p>";
+    msg.textContent = "";
+    msg.className = "msg";
+    return;
+  }
+
+  const u = users[currentUser];
+  ensureUserStructure(u);
+  generateDailyQuests(u);
+
+  document.getElementById("questsUserLabel").textContent = currentUser;
+  document.getElementById("questsCoinsLabel").textContent = u.coins;
+
+  box.innerHTML = "";
+  u.dailyQuests.forEach((q, i) => {
+    const div = document.createElement("div");
+    div.className = "questItem";
+
+    let statusText = "❌ Not completed";
+    if (q.done && !q.claimed) statusText = "✔ Completed (reward not claimed)";
+    if (q.done && q.claimed) statusText = "✔ Reward claimed";
+
+    div.innerHTML = `
+      <h3>${q.task}</h3>
+      <p>Status: ${statusText}</p>
+    `;
+
+    if (q.done && !q.claimed) {
+      const btn = document.createElement("button");
+      btn.textContent = "Claim Reward (20)";
+      btn.onclick = () => {
+        if (q.claimed) return;
+        q.claimed = true;
+        u.coins += 20;
+        saveUsers();
+        updateCoinCounter();
+        renderQuests();
+      };
+      div.appendChild(btn);
+    }
+
+    box.appendChild(div);
+  });
+
+  msg.textContent = "Quests reset daily per account. Complete them, then come here to claim rewards.";
+  msg.className = "msg";
+}
+
+/* TIME-BASED QUEST HELPERS */
+function resetPlayIfNewDay(user) {
+  const today = new Date().toDateString();
+  if (user.playDate !== today) {
+    user.playDate = today;
+    user.playSecondsToday = 0;
+  }
+}
+
+function resetWalkIfNewDay(user) {
+  const today = new Date().toDateString();
+  if (user.walkDate !== today) {
+    user.walkDate = today;
+    user.walkMsToday = 0;
+  }
+}
+
+function tickPlaytime() {
+  if (!currentUser || !users[currentUser]) return;
+  const u = users[currentUser];
+  ensureUserStructure(u);
+
+  resetPlayIfNewDay(u);
+  u.playSecondsToday++;
+  if (u.playSecondsToday >= 3600) {
+    completeQuest("Play for 1 hour");
+  }
+  saveUsers();
+}
+setInterval(tickPlaytime, 1000);
+
+/* PANDA SIMULATOR */
+const simCanvas = document.getElementById("simCanvas");
+const simCtx = simCanvas.getContext("2d");
+
+let simPanda = {
+  x: 150,
+  y: 150,
+  size: 60
+};
+
+function drawSimPanda() {
+  simCtx.clearRect(0, 0, 300, 300);
+
+  simCtx.fillStyle = "white";
+  simCtx.beginPath();
+  simCtx.arc(simPanda.x, simPanda.y, simPanda.size, 0, Math.PI * 2);
+  simCtx.fill();
+
+  simCtx.fillStyle = "black";
+  simCtx.beginPath();
+  simCtx.arc(simPanda.x - 30, simPanda.y - 40, 18, 0, Math.PI * 2);
+  simCtx.arc(simPanda.x + 30, simPanda.y - 40, 18, 0, Math.PI * 2);
+  simCtx.fill();
+
+  simCtx.beginPath();
+  simCtx.arc(simPanda.x - 18, simPanda.y - 10, 10, 0, Math.PI * 2);
+  simCtx.arc(simPanda.x + 18, simPanda.y - 10, 10, 0, Math.PI * 2);
+  simCtx.fill();
+
+  simCtx.beginPath();
+  simCtx.arc(simPanda.x, simPanda.y + 5, 6, 0, Math.PI * 2);
+  simCtx.fill();
+
+  simCtx.fillStyle = "#ff99aa";
+  simCtx.beginPath();
+  simCtx.arc(simPanda.x - 28, simPanda.y + 5, 6, 0, Math.PI * 2);
+  simCtx.arc(simPanda.x + 28, simPanda.y + 5, 6, 0, Math.PI * 2);
+  simCtx.fill();
+}
+
+function updateSimulatorUI() {
+  if (!currentUser || !users[currentUser]) {
+    document.getElementById("simUserLabel").textContent = "None";
+    document.getElementById("simCoinsLabel").textContent = "0";
+    const simMessage = document.getElementById("simMessage");
+    if (simMessage) {
+      simMessage.textContent = "Log in to earn PandaCoins.";
+      simMessage.className = "msg";
+    }
+    drawSimPanda();
+    return;
+  }
+
+  const u = users[currentUser];
+  ensureUserStructure(u);
+  document.getElementById("simUserLabel").textContent = currentUser;
+  document.getElementById("simCoinsLabel").textContent = u.coins;
+  const simMessage = document.getElementById("simMessage");
+  if (simMessage) {
+    simMessage.textContent = "Each click gives 1 PandaCoin. It's slow on purpose.";
+    simMessage.className = "msg";
+  }
+  drawSimPanda();
+}
+
+function resetSimIfNewDay(user) {
+  const today = new Date().toDateString();
+  if (user.simDate !== today) {
+    user.simDate = today;
+    user.simCoinsToday = 0;
+  }
+}
+
+simCanvas.addEventListener("click", () => {
+  if (!currentUser || !users[currentUser]) {
+    alert("Log in first to earn PandaCoins.");
+    return;
+  }
+
+  const u = users[currentUser];
+  ensureUserStructure(u);
+
+  resetSimIfNewDay(u);
+
+  if (u.simCoinsToday >= 40) {
+    const msg = document.getElementById("simMessage");
+    msg.textContent = "Daily limit reached.";
+    msg.className = "msg error";
+    return;
+  }
+
+  u.simCoinsToday++;
+  u.coins++;
+
+  saveUsers();
+  updateCoinCounter();
+  refreshAllLabels();
+  updateSimulatorUI();
+});
+
+/* FLASHCARDS */
+let decks = JSON.parse(localStorage.getItem("decks") || "{}");
+let currentDeck = null;
+let studyQueue = [];
+let studyIndex = 0;
+let showingFront = true;
+
+function saveDecks() {
+  localStorage.setItem("decks", JSON.stringify(decks));
+  renderDecks();
+  renderFlashcards();
+}
+
+function renderDecks() {
+  const select = document.getElementById("deckSelect");
+  select.innerHTML = "";
+
+  for (let deckName in decks) {
+    const opt = document.createElement("option");
+    opt.value = deckName;
+    opt.textContent = deckName;
+    select.appendChild(opt);
+  }
+
+  if (currentDeck && decks[currentDeck]) {
+    select.value = currentDeck;
+  }
+}
+
+function createDeck() {
+  const name = document.getElementById("newDeckName").value.trim();
+  if (!name || decks[name]) return;
+
+  decks[name] = [];
+  currentDeck = name;
+  document.getElementById("newDeckName").value = "";
+  saveDecks();
+}
+
+function selectDeck(name) {
+  currentDeck = name;
+  renderFlashcards();
+}
+
+function addFlashcard() {
+  if (!currentDeck) return alert("Create or select a deck first.");
+
+  const front = document.getElementById("fcFront").value.trim();
+  const back = document.getElementById("fcBack").value.trim();
+  if (!front || !back) return;
+
+  decks[currentDeck].push({ front, back });
+  document.getElementById("fcFront").value = "";
+  document.getElementById("fcBack").value = "";
+  saveDecks();
+}
+
+function renderFlashcards() {
+  const list = document.getElementById("flashcardList");
+  list.innerHTML = "";
+
+  if (!currentDeck) {
+    list.innerHTML = "<em>No deck selected.</em>";
+    return;
+  }
+
+  decks[currentDeck].forEach((card, i) => {
+    const div = document.createElement("div");
+    div.style.margin = "5px 0";
+    div.style.padding = "8px";
+    div.style.border = "1px solid #444";
+    div.style.background = "#222";
+
+    div.innerHTML = `
+      <strong>${card.front}</strong><br>
+      <em>${card.back}</em><br>
+      <button onclick="deleteCard(${i})">Delete</button>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+function deleteCard(i) {
+  decks[currentDeck].splice(i, 1);
+  saveDecks();
+}
+
+/* STUDY MODE */
+function startStudy() {
+  if (!currentDeck || decks[currentDeck].length === 0) return;
+
+  studyQueue = [...decks[currentDeck]];
+  studyIndex = 0;
+  showingFront = true;
+
+  document.getElementById("studyDeckName").textContent = currentDeck;
+  updateStudyUI();
+}
+
+function updateStudyUI() {
+  if (studyQueue.length === 0) {
+    document.getElementById("studyCardText").textContent = "All cards mastered!";
+    document.getElementById("studyProgress").textContent = "0 / 0";
+    return;
+  }
+
+  const card = studyQueue[studyIndex];
+  document.getElementById("studyCardText").textContent = showingFront ? card.front : card.back;
+  document.getElementById("studyProgress").textContent = `${studyIndex + 1} / ${studyQueue.length}`;
+}
+
+function flipStudyCard() {
+  if (studyQueue.length === 0) return;
+  showingFront = !showingFront;
+  updateStudyUI();
+}
+
+function markStudyCard(gotIt) {
+  if (studyQueue.length === 0) return;
+
+  if (gotIt) {
+    studyQueue.splice(studyIndex, 1);
+  } else {
+    studyIndex++;
+  }
+
+  if (studyIndex >= studyQueue.length) studyIndex = 0;
+  showingFront = true;
+  updateStudyUI();
+}
+
+renderDecks();
+renderFlashcards();
+
+/* BASIC CALCULATOR */
+let calcValue = "";
+
+function pressCalc(val) {
+  calcValue += val;
+  document.getElementById("calcDisplay").value = calcValue;
+}
+
+function calculate() {
+  try {
+    calcValue = eval(calcValue).toString();
+    document.getElementById("calcDisplay").value = calcValue;
+  } catch {
+    document.getElementById("calcDisplay").value = "Error";
+  }
+}
+
+function clearCalc() {
+  calcValue = "";
+  document.getElementById("calcDisplay").value = "";
+}
+
+/* GRAPHING CALCULATOR */
+function plotGraph() {
+  const canvas = document.getElementById("graphCanvas");
+  const ctx = canvas.getContext("2d");
+  const expr = document.getElementById("graphInput").value;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.strokeStyle = "#888";
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height / 2);
+  ctx.lineTo(canvas.width, canvas.height / 2);
+  ctx.moveTo(canvas.width / 2, 0);
+  ctx.lineTo(canvas.width / 2, canvas.height);
+  ctx.stroke();
+
+  ctx.strokeStyle = "#00ff00";
+  ctx.beginPath();
+
+  for (let px = 0; px < canvas.width; px++) {
+    let x = (px - canvas.width / 2) / 20;
+    let y;
+
+    try {
+      y = eval(expr.replace(/x/g, `(${x})`));
+    } catch {
+      continue;
+    }
+
+    let py = canvas.height / 2 - y * 20;
+
+    if (px === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+
+  ctx.stroke();
+}
+
+/* CASINO SLOT MACHINE */
+const slotSymbols = ["🍒","🍋","⭐","💎","🐼","7"];
+
+function spinSlots() {
+  if (!currentUser || !users[currentUser]) {
+    alert("Log in first to use the casino.");
+    return;
+  }
+  const u = users[currentUser];
+  ensureUserStructure(u);
+  const msg = document.getElementById("casinoMessage");
+
+  if (u.coins < 10) {
+    msg.textContent = "Not enough PandaCoins.";
+    msg.className = "msg error";
+    return;
+  }
+
+  u.coins -= 10;
+
+  const results = [];
+  for (let i = 0; i < 5; i++) {
+    const sym = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
+    results.push(sym);
+    document.getElementById("slot" + i).textContent = sym;
+  }
+
+  let win = results.every(s => s === results[0]);
+  if (win) {
+    u.coins += 2000;
+    msg.textContent = "JACKPOT! You won 2000 PandaCoins!";
+    msg.className = "msg success";
+  } else {
+    msg.textContent = "No win this time.";
+    msg.className = "msg";
+  }
+
+  saveUsers();
+  updateCoinCounter();
+  refreshAllLabels();
+
+  completeQuest("Spin the slot machine");
+}
+
+/* PLAY ANY GAME HELPER */
+function playGame(url) {
+  completeQuest("Play any game");
+  window.location.href = url;
+}
+
+/* PRIVACY POPUP */
+window.onload = function() {
+  document.getElementById("privacyPopup").style.display = "flex";
+};
+
+function closePrivacyPopup() {
+  const check = document.getElementById("privacyAgree");
+
+  if (!check.checked) {
+    alert("Please check the box to continue.");
+    return;
+  }
+
+  document.getElementById("privacyPopup").style.display = "none";
+}
+
+/* CHRISTMAS CALENDAR LOGIC */
+function isDecemberToday() {
+  const now = new Date();
+  return now.getMonth() === 11; // December = 11
+}
+
+function getTodayDay() {
+  return new Date().getDate();
+}
+
+function updateCalendarUI() {
+  const msg = document.getElementById("calendarMessage");
+  if (!msg) return;
+
+  const ornaments = document.querySelectorAll(".calendar-ornament");
+  ornaments.forEach(o => {
+    o.classList.remove("shiny", "dull", "locked");
+  });
+
+  if (!currentUser || !users[currentUser]) {
+    msg.textContent = "Log in to claim ornaments.";
+    msg.className = "msg";
+    ornaments.forEach(o => o.classList.add("locked"));
+    return;
+  }
+
+  const u = users[currentUser];
+  ensureUserStructure(u);
+
+  const isDec = isDecemberToday();
+  const today = getTodayDay();
+
+  if (!isDec) {
+    msg.textContent = "The Christmas event only runs in December. Ornaments are locked right now.";
+    msg.className = "msg";
+  } else {
+    msg.textContent = "Click today's shiny ornament to claim your reward.";
+    msg.className = "msg";
+  }
+
+  ornaments.forEach(o => {
+    const day = parseInt(o.getAttribute("data-day"), 10);
+    const claimed = !!u.christmasEvent.claimed[day];
+
+    if (claimed) {
+      o.classList.add("dull");
+      o.classList.remove("shiny");
+      o.classList.remove("locked");
+      return;
+    }
+
+    if (!isDec) {
+      o.classList.add("locked");
+      return;
+    }
+
+    if (day === today) {
+      o.classList.add("shiny");
+    } else if (day < today) {
+      // missed or not claimed in time – dull
+      o.classList.add("dull");
+    } else {
+      // future
+      o.classList.add("locked");
+    }
+  });
+}
+
+function handleCalendarClick(e) {
+  const target = e.target;
+  if (!target.classList.contains("calendar-ornament")) return;
+
+  if (!currentUser || !users[currentUser]) {
+    alert("Log in first to claim ornaments.");
+    return;
+  }
+
+  const u = users[currentUser];
+  ensureUserStructure(u);
+
+  const day = parseInt(target.getAttribute("data-day"), 10);
+  const isDec = isDecemberToday();
+  const today = getTodayDay();
+
+  if (!isDec) {
+    alert("Too early! The Christmas event only runs in December.");
+    return;
+  }
+
+  if (day < today) {
+    alert("Too late! That ornament is from a previous day.");
+    return;
+  }
+  if (day > today) {
+    alert("Too early! You can only claim today's ornament.");
+    return;
+  }
+
+  if (u.christmasEvent.claimed[day]) {
+    alert("You already claimed this ornament.");
+    return;
+  }
+
+  // REWARDS:
+  // 1–19, 22: PandaCoins
+  // 20, 21, 23, 24: event skins
+  // 25: pandsnowman furniture
+  let rewardText = "";
+
+  if ((day >= 1 && day <= 19) || day === 22) {
+    const coins = 50;
+    u.coins += coins;
+    rewardText = `You received ${coins} PandaCoins!`;
+  } else if (day === 20) {
+    if (!u.skinsOwned.includes("snowfall")) u.skinsOwned.push("snowfall");
+    rewardText = "You unlocked the snowfall skin!";
+  } else if (day === 21) {
+    if (!u.skinsOwned.includes("candycane")) u.skinsOwned.push("candycane");
+    rewardText = "You unlocked the candycane skin!";
+  } else if (day === 23) {
+    if (!u.skinsOwned.includes("holly")) u.skinsOwned.push("holly");
+    rewardText = "You unlocked the holly skin!";
+  } else if (day === 24) {
+    if (!u.skinsOwned.includes("starlight")) u.skinsOwned.push("starlight");
+    rewardText = "You unlocked the starlight skin!";
+  } else if (day === 25) {
+    if (!u.furnitureOwned.includes("pandsnowman")) {
+      u.furnitureOwned.push("pandsnowman");
+    }
+    rewardText = "You unlocked the pandsnowman furniture for your garden!";
+  }
+
+  u.christmasEvent.claimed[day] = true;
+  saveUsers();
+  updateCoinCounter();
+  refreshAllLabels();
+  drawFurniture();
+  updateCalendarUI();
+
+  alert(rewardText);
+}
+
+document.addEventListener("click", handleCalendarClick);
+
+/* INITIAL LOAD */
+loadUsers();
+updateCoinCounter();
+drawFurniture();
+refreshAllLabels();
+drawSimPanda();
+updateCalendarUI();
+</script>
+
+</body>
+</html>
